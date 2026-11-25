@@ -86,14 +86,19 @@ class OrderResource extends Resource
                     ->label('Ongkir')
                     ->numeric()
                     ->prefix('Rp')
-                    ->default(0),
+                    ->default(0)
+                    ->live(onBlur: true)
+                    ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
+                        $set('grand_total', (int) $get('subtotal') + (int) ($state ?: 0));
+                    }),
 
                 Forms\Components\TextInput::make('grand_total')
                     ->label('Total')
                     ->numeric()
                     ->prefix('Rp')
                     ->disabled()
-                    ->dehydrated(false),
+                    ->dehydrated(false)
+                    ->helperText('Otomatis dihitung ulang (subtotal + ongkir) saat disimpan.'),
             ])->columns(2),
         ]);
     }

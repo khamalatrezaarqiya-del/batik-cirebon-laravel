@@ -1,4 +1,4 @@
-import { Link, router, usePage } from '@inertiajs/react'
+import { Link, router } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
 import ShopLayout from '../../Layouts/ShopLayout.jsx'
 import ProductCard from '../../Components/ProductCard.jsx'
@@ -7,12 +7,20 @@ import { useReveal } from '../../Hooks/useReveal.js'
 import { addToCart } from '../../Lib/cart.js'
 import { makeT, readLang } from '../../Lib/i18n.js'
 
-const MOTIFS = ['all', 'mega', 'kawung', 'parang', 'truntum']
+const MOTIFS = ['all', 'mega', 'kawung', 'parang', 'truntum', 'wadasan']
+
+function formatPageLabel(label) {
+  return String(label)
+    .replace(/&laquo;/g, '‹')
+    .replace(/&raquo;/g, '›')
+    .replace(/&amp;/g, '&')
+    .replace(/Previous/i, 'Sebelumnya')
+    .replace(/Next/i, 'Berikutnya')
+}
 
 export default function Catalog({ products, categories = [], filters = {} }) {
   const [lang, setLang] = useState(() => readLang())
   const t = makeT(lang)
-  const { url } = usePage()
   const cat = filters.cat || 'all'
   const motif = filters.motif || 'all'
   const term = filters.term || ''
@@ -29,15 +37,18 @@ export default function Catalog({ products, categories = [], filters = {} }) {
   useReveal([cat, term, sort, motif, products?.data])
 
   const setParam = (key, value) => {
+    const next = {
+      cat,
+      motif,
+      q: term,
+      sort,
+      [key]: value,
+    }
     const params = new URLSearchParams()
-    Object.entries(filters).forEach(([k, v]) => {
-      if (v && v !== 'all') params.set(k, v)
-    })
-    if (key === 'cat' && value === 'all') params.delete('cat')
-    else if (key === 'cat') params.set('cat', value)
-    else if (key === 'q') { if (value) params.set('q', value) }
-    else if (key === 'motif') { if (value !== 'all') params.set('motif', value) }
-    else if (key === 'sort') { if (value !== 'new') params.set('sort', value) }
+    if (next.cat && next.cat !== 'all') params.set('cat', next.cat)
+    if (next.motif && next.motif !== 'all') params.set('motif', next.motif)
+    if (next.q) params.set('q', next.q)
+    if (next.sort && next.sort !== 'new') params.set('sort', next.sort)
 
     const qs = params.toString()
     router.visit(`/katalog${qs ? '?' + qs : ''}`, { preserveState: true })
@@ -56,6 +67,7 @@ export default function Catalog({ products, categories = [], filters = {} }) {
           <div className="filters">
             {[{ slug: 'all', nama: 'all' }, ...categories].map((c) => (
               <button
+                type="button"
                 key={c.slug}
                 className={cat === c.slug ? 'filter active' : 'filter'}
                 onClick={() => setParam('cat', c.slug)}
@@ -83,25 +95,33 @@ export default function Catalog({ products, categories = [], filters = {} }) {
         </div>
 
         <p className="result-count">
-          {term ? <>
-            {t('search_result')} “<b>{term}</b>” — {products?.total} {t('products_count')} ·{' '}
-            <button className="text-link" onClick={() => setParam('q', '')} style={{ background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>
-              {t('reset_filter')}
-            </button>
-          </> : <>
-            <b>{products?.total}</b> {t('products_count')}
-            {hasFilter && <> ·{' '}
-              <button className="text-link" onClick={resetAll} style={{ background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>
+          {term ? (
+            <>
+              {t('search_result')} “<b>{term}</b>” ({products?.total} {t('products_count')})
+              {' '}
+              <button type="button" className="text-link inline-btn" onClick={() => setParam('q', '')}>
                 {t('reset_filter')}
               </button>
-            </>}
-          </>}
+            </>
+          ) : (
+            <>
+              <b>{products?.total}</b> {t('products_count')}
+              {hasFilter && (
+                <>
+                  {' '}
+                  <button type="button" className="text-link inline-btn" onClick={resetAll}>
+                    {t('reset_filter')}
+                  </button>
+                </>
+              )}
+            </>
+          )}
         </p>
 
         {!products?.data?.length ? (
           <div className="empty">
             <p>{t('no_result')}</p>
-            <button className="button ghost" onClick={resetAll}>{t('reset_filter')}</button>
+            <button type="button" className="button ghost" onClick={resetAll}>{t('reset_filter')}</button>
           </div>
         ) : (
           <>
@@ -111,14 +131,14 @@ export default function Catalog({ products, categories = [], filters = {} }) {
               ))}
             </div>
 
-            {products.links.some((l) => l.url !== null) && (
-              <nav className="pagination" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
+            {products.last_page > 1 && (
+              <nav className="pagination" aria-label="Halaman katalog">
                 {products.links.map((l, i) =>
                   l.url === null ? (
-                    <span key={i} style={{ opacity: .5, padding: '8px 14px' }}>{l.label}</span>
+                    <span key={i} className="page-item disabled">{formatPageLabel(l.label)}</span>
                   ) : (
-                    <Link key={i} href={l.url} className={l.active ? 'button' : 'button ghost'} style={{ padding: '8px 14px' }}>
-                      {l.label.replace(/&amp;/g, '&')}
+                    <Link key={i} href={l.url} className={l.active ? 'page-item active' : 'page-item'}>
+                      {formatPageLabel(l.label)}
                     </Link>
                   )
                 )}

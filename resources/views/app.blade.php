@@ -3,18 +3,18 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#1f3a5f">
-        <meta name="description" content="Batik tulis dan cap asli Cirebon. Motif Mega Mendung, Kawung, Parang, dan Truntum oleh pengrajin Trusmi.">
+        <meta name="theme-color" content="#faf7f2">
+        <meta name="description" content="Batik Daffa — Koleksi batik tulis dan cap pilihan dari pengrajin Trusmi, Cirebon. Motif Mega Mendung, Kawung, Parang, Truntum, dan Wadasan.">
         <meta property="og:type" content="website">
-        <meta property="og:site_name" content="Batik Cirebon">
+        <meta property="og:site_name" content="Batik Daffa">
 
-        <title inertia>{{ config('app.name', 'Batik Cirebon') }}</title>
+        <title inertia>{{ config('app.name', 'Batik Daffa') }}</title>
 
-        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231f3a5f'/%3E%3Cpath d='M8 26q12-10 24 0t24 0M8 38q12-10 24 0t24 0M8 50q12-10 24 0t24 0' fill='none' stroke='%23d4a574' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23261e18'/%3E%3Cpath d='M10 26q11-9 22 0t22 0M10 38q11-9 22 0t22 0M10 50q11-9 22 0t22 0' fill='none' stroke='%23d6c4ae' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E">
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
         @routes
         @viteReactRefresh
@@ -22,6 +22,7 @@
         @inertiaHead
     </head>
     <body>
+        <script>document.documentElement.classList.add('js')</script>
         @inertia
     </body>
 </html>

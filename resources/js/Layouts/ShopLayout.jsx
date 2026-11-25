@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, usePage } from '@inertiajs/react'
+import { Link, router, usePage } from '@inertiajs/react'
 import { waLink } from '../Lib/whatsapp.js'
 import { readCart } from '../Lib/cart.js'
 import { makeT, readLang, writeLang } from '../Lib/i18n.js'
@@ -11,32 +11,33 @@ const TITLES = {
   checkout: 'checkout_title',
   pesanan: 'orders_title',
   bantuan: 'footer_help',
+  dashboard: 'account',
 }
 
 const IconCart = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H6" />
-    <circle cx="10" cy="20" r="1.4" />
-    <circle cx="18" cy="20" r="1.4" />
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+    <path d="M3 6h18" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
   </svg>
 )
 
 const IconUser = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="12" cy="8" r="3.6" />
     <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
   </svg>
 )
 
 const IconSearch = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
     <circle cx="11" cy="11" r="6.5" />
     <path d="m20 20-3.6-3.6" />
   </svg>
 )
 
 const IconMenu = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden="true">
     <path d="M4 7h16M4 12h16M4 17h16" />
   </svg>
 )
@@ -93,7 +94,7 @@ export default function ShopLayout({ children, title }) {
   useEffect(() => {
     window.scrollTo(0, 0)
     const seg = path.split('/')[1] || ''
-    const base = 'Batik Cirebon'
+    const base = 'Batik Daffa'
     const label = title || (TITLES[seg] ? t(TITLES[seg]) : '')
     document.title = label ? `${label} · ${base}` : base
   }, [path, title, t])
@@ -101,12 +102,12 @@ export default function ShopLayout({ children, title }) {
   const submitSearch = (e) => {
     e.preventDefault()
     const term = q.trim()
-    window.location.href = term ? `/katalog?q=${encodeURIComponent(term)}` : '/katalog'
+    router.visit(term ? `/katalog?q=${encodeURIComponent(term)}` : '/katalog')
   }
 
   const navClass = (href) => {
     const [p, s] = href.split('?')
-    const active = s ? path === p && search === '?' + s : path === p
+    const active = s ? path === p && search === '?' + s : path === p && !search
     return active ? 'active' : ''
   }
 
@@ -124,6 +125,7 @@ export default function ShopLayout({ children, title }) {
       <header className={`hdr${shrink ? ' shrink' : ''}${open ? ' open' : ''}`}>
         <div className="hdr-inner">
           <button
+            type="button"
             className="burger"
             onClick={() => setOpen((v) => !v)}
             aria-label={t('menu')}
@@ -133,19 +135,20 @@ export default function ShopLayout({ children, title }) {
           </button>
 
           <Link className="logo" href="/">
-            BATIK<span>CIREBON</span>
+            BATIK <span>DAFFA</span>
           </Link>
 
-          <nav className="mainnav">
+          <nav className="mainnav" aria-label="Navigasi utama">
             <Link href="/" className={navClass('/')}>{t('nav_home')}</Link>
             <Link href="/katalog" className={navClass('/katalog')}>{t('nav_catalog')}</Link>
-            <Link href="/katalog?cat=pakaian" className={navClass('/katalog?cat=pakaian')}>{t('pakaian')}</Link>
             <Link href="/katalog?cat=kain" className={navClass('/katalog?cat=kain')}>{t('kain')}</Link>
+            <Link href="/katalog?cat=pakaian" className={navClass('/katalog?cat=pakaian')}>{t('pakaian')}</Link>
             <Link href="/katalog?cat=aksesoris" className={navClass('/katalog?cat=aksesoris')}>{t('aksesoris')}</Link>
-            <Link href="/pesanan" className={navClass('/pesanan')}>{t('nav_orders')}</Link>
+            <Link href="/pesanan" className={path.startsWith('/pesanan') ? 'active' : ''}>{t('nav_orders')}</Link>
           </nav>
 
           <form className="searchbar" onSubmit={submitSearch} role="search">
+            <IconSearch />
             <input
               type="search"
               value={q}
@@ -153,13 +156,10 @@ export default function ShopLayout({ children, title }) {
               placeholder={t('search_ph')}
               aria-label={t('search')}
             />
-            <button type="submit" aria-label={t('search')}>
-              <IconSearch />
-            </button>
           </form>
 
           <div className="hdr-actions">
-            <button className="icon-btn lang-btn" onClick={toggleLang} title="Ganti bahasa">
+            <button type="button" className="icon-btn lang-btn" onClick={toggleLang} title="Ganti bahasa">
               {lang === 'id' ? 'EN' : 'ID'}
             </button>
 
@@ -189,13 +189,13 @@ export default function ShopLayout({ children, title }) {
         <div className="footer-main">
           <div className="footer-col footer-brand">
             <Link className="logo" href="/">
-              BATIK<span>CIREBON</span>
+              BATIK <span>DAFFA</span>
             </Link>
             <p>{t('footer_about')}</p>
             <div className="socials">
-              <a href={waLink()} target="_blank" rel="noreferrer" aria-label="WhatsApp">wa</a>
-              <a href="https://instagram.com/xxxx" target="_blank" rel="noreferrer" aria-label="Instagram">ig</a>
-              <a href="https://facebook.com/xxxx" target="_blank" rel="noreferrer" aria-label="Facebook">fb</a>
+              <a href={waLink()} target="_blank" rel="noreferrer" aria-label="WhatsApp">WA</a>
+              <a href="https://instagram.com/xxxx" target="_blank" rel="noreferrer" aria-label="Instagram">IG</a>
+              <a href="https://facebook.com/xxxx" target="_blank" rel="noreferrer" aria-label="Facebook">FB</a>
             </div>
           </div>
 
@@ -212,19 +212,19 @@ export default function ShopLayout({ children, title }) {
             <Link href="/bantuan/cara-belanja">{t('help_how')}</Link>
             <Link href="/bantuan/ukuran">{t('help_size')}</Link>
             <Link href="/bantuan/pengiriman">{t('help_pay')}</Link>
-            <a href={waLink()} target="_blank" rel="noreferrer">{t('help_contact')}</a>
+            <Link href="/pesanan">{t('track_title')}</Link>
           </div>
 
           <div className="footer-col">
             <h3>{t('footer_contact')}</h3>
             <p>{t('address')}</p>
-            <a href={waLink()} target="_blank" rel="noreferrer">xxxx-xxxx-xxxx</a>
-            <a href="mailto:xxxx@xxxx.com">xxxx@xxxx.com</a>
+            <a href={waLink()} target="_blank" rel="noreferrer">WhatsApp Batik Daffa</a>
+            <a href="mailto:halo@batikdaffa.com">halo@batikdaffa.com</a>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <span>© 2026 PROYEK WEBSITE PENGMAS — Batik Cirebon</span>
+          <span>© 2026 Batik Daffa. {t('rights')}</span>
           <span>{t('footer_note')}</span>
         </div>
       </footer>

@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react'
+import { Link, router } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
 import ShopLayout from '../../Layouts/ShopLayout.jsx'
 import { ProductImage } from '../../Components/Motif.jsx'
@@ -24,15 +24,19 @@ export default function ProductDetail({ product, related = [] }) {
   }, [])
 
   const hasSizes = product.kategori === 'pakaian'
+  const availableStock = typeof product.stok === 'number' ? product.stok : MAX_QTY
+  const maxAllowed = Math.max(1, Math.min(MAX_QTY, availableStock))
+  const isOutOfStock = availableStock <= 0
   const maxId = Math.max(product.id, ...related.map((p) => p.id), 26)
 
   const add = () => {
+    if (isOutOfStock) return
     addToCart(product.id, qty, hasSizes ? size : '')
-    window.location.href = '/keranjang'
+    router.visit('/keranjang')
   }
 
   const askOnWa = () =>
-    waLink(`Halo, saya mau tanya produk *${product.nama}*${hasSizes && size ? ` ukuran ${size}` : ''} (jumlah ${qty}).`)
+    waLink(`Halo Batik Daffa, saya mau tanya produk *${product.nama}*${hasSizes && size ? ` ukuran ${size}` : ''} (jumlah ${qty}).`)
 
   return (
     <ShopLayout title={product.nama}>
@@ -43,40 +47,53 @@ export default function ProductDetail({ product, related = [] }) {
         </p>
 
         <div className="detail">
-          <ProductImage product={product} />
+          <div className="detail-media">
+            <ProductImage product={product} />
+          </div>
 
           <div className="detail-info">
             <p className="category">{product.kategori_nama}</p>
             <h1>{product.nama}</h1>
             <div className="detail-price">{formatRupiah(product.harga)}</div>
+            <p className="stock-line">
+              {isOutOfStock ? (
+                <span className="status status-batal">{t('out_of_stock')}</span>
+              ) : (
+                <span>{t('stock_left')}: <strong>{availableStock}</strong></span>
+              )}
+            </p>
             <p className="description">{product.deskripsi || t('product_desc')}</p>
 
             {hasSizes && (
               <div className="option-row">
-                <span>{t('size_label')}</span>
-                {SIZES.map((s) => (
-                  <button key={s} className={size === s ? 'chip active' : 'chip'} onClick={() => setSize(s)} aria-pressed={size === s}>
-                    {s}
-                  </button>
-                ))}
+                <span className="option-label">{t('size_label')}</span>
+                <div className="option-group">
+                  {SIZES.map((s) => (
+                    <button type="button" key={s} className={size === s ? 'chip active' : 'chip'} onClick={() => setSize(s)} aria-pressed={size === s}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
             <div className="option-row">
-              <span>{t('qty')}</span>
+              <span className="option-label">{t('qty')}</span>
               <div className="quantity">
-                <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Kurangi">−</button>
+                <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Kurangi" disabled={isOutOfStock}>−</button>
                 <span>{qty}</span>
-                <button onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))} aria-label="Tambah">+</button>
+                <button type="button" onClick={() => setQty((q) => Math.min(maxAllowed, q + 1))} aria-label="Tambah" disabled={isOutOfStock || qty >= maxAllowed}>+</button>
               </div>
-              {qty >= MAX_QTY && <span className="qty-note">{t('qty_max')}</span>}
+              {!isOutOfStock && qty >= maxAllowed && <span className="qty-note">{t('qty_max')}</span>}
             </div>
 
             <div className="detail-buy">
-              <button className="button" onClick={add} disabled={hasSizes && !size}>{t('add_to_cart')}</button>
+              <button type="button" className="button" onClick={add} disabled={isOutOfStock || (hasSizes && !size)}>
+                {isOutOfStock ? t('out_of_stock') : t('add_to_cart')}
+              </button>
               <a className="button ghost" href={askOnWa()} target="_blank" rel="noreferrer">WhatsApp</a>
             </div>
-            {hasSizes && !size && <p className="qty-note">{t('size_required')}</p>}
+            {!isOutOfStock && hasSizes && !size && <p className="qty-note" style={{ marginTop: 8 }}>{t('size_required')}</p>}
 
             <div className="detail-meta">
               <p>{t('detail_made')}</p>
@@ -86,14 +103,14 @@ export default function ProductDetail({ product, related = [] }) {
             </div>
 
             <p style={{ marginTop: 20 }}>
-              <Link className="back-link" href="/katalog">← {t('back_to_catalog')}</Link>
+              <Link className="back-link" href="/katalog">{t('back_to_catalog')}</Link>
             </p>
           </div>
         </div>
 
         {related.length > 0 && (
           <>
-            <SectionTitle action={<Link className="text-link" href={`/katalog?cat=${product.kategori}`}>{t('see_all')} →</Link>}>
+            <SectionTitle action={<Link className="text-link" href={`/katalog?cat=${product.kategori}`}>{t('see_all')}</Link>}>
               {product.kategori_nama}
             </SectionTitle>
             <div className="grid">

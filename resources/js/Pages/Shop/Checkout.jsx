@@ -1,4 +1,4 @@
-import { Link, useForm } from '@inertiajs/react'
+import { Link, useForm, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import ShopLayout from '../../Layouts/ShopLayout.jsx'
 import SectionTitle from '../../Components/SectionTitle.jsx'
@@ -8,7 +8,9 @@ import { makeT, readLang } from '../../Lib/i18n.js'
 
 const PAYMENTS = ['transfer', 'ewallet', 'cod']
 
-export default function Checkout({ products = [], auth = null }) {
+export default function Checkout({ products = [] }) {
+  const { props } = usePage()
+  const user = props?.auth?.user || null
   const [lang, setLang] = useState(() => readLang())
   const t = makeT(lang)
   const [cart, setCart] = useState(() => readCart())
@@ -29,7 +31,7 @@ export default function Checkout({ products = [], auth = null }) {
   const total = items.reduce((s, i) => s + i.lineTotal, 0)
 
   const form = useForm({
-    recipient_name: auth?.name || '',
+    recipient_name: user?.name || '',
     phone: '',
     shipping_address: '',
     note: '',
@@ -44,7 +46,10 @@ export default function Checkout({ products = [], auth = null }) {
       items: items.map((i) => ({ product_id: i.id, size: i.size || null, qty: i.qty })),
     }))
     form.post('/checkout', {
-      onSuccess: () => clearCart(),
+      onSuccess: () => {
+        clearCart()
+        setCart([])
+      },
     })
   }
 
@@ -67,13 +72,12 @@ export default function Checkout({ products = [], auth = null }) {
         <SectionTitle>{t('checkout_title')}</SectionTitle>
         <div className="checkout-layout">
           <form className="form" onSubmit={submit}>
-            <h2>{t('checkout_title')}</h2>
+            <h2>{t('checkout_recipient')}</h2>
 
             {Object.keys(form.errors).length > 0 && (
               <p className="error">{Object.values(form.errors)[0]}</p>
             )}
 
-            <h3>{t('checkout_recipient')}</h3>
             <label>
               {t('recipient_name')}
               <input
@@ -118,18 +122,20 @@ export default function Checkout({ products = [], auth = null }) {
             </label>
 
             <h3>{t('payment_method')}</h3>
-            {PAYMENTS.map((p, i) => (
-              <label className="radio-row" key={p}>
-                <input
-                  type="radio"
-                  name="payment_method"
-                  value={p}
-                  checked={form.data.payment_method === p}
-                  onChange={() => form.setData('payment_method', p)}
-                />
-                {t('pay_' + p)}
-              </label>
-            ))}
+            <div className="radio-group">
+              {PAYMENTS.map((p) => (
+                <label className={`radio-row${form.data.payment_method === p ? ' selected' : ''}`} key={p}>
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value={p}
+                    checked={form.data.payment_method === p}
+                    onChange={() => form.setData('payment_method', p)}
+                  />
+                  <span>{t('pay_' + p)}</span>
+                </label>
+              ))}
+            </div>
 
             <button className="button" type="submit" disabled={form.processing}>
               {t('place_order')}
@@ -140,12 +146,15 @@ export default function Checkout({ products = [], auth = null }) {
             <h2>{t('order_summary')}</h2>
             {items.map((i) => (
               <p key={i.key}>
-                {i.nama}{i.size ? ` (${i.size})` : ''} ×{i.qty}
+                <span>{i.nama}{i.size ? ` (${i.size})` : ''} ×{i.qty}</span>
                 <strong>{formatRupiah(i.lineTotal)}</strong>
               </p>
             ))}
             <hr />
-            <p><strong>{t('cart_total')}: {formatRupiah(total)}</strong></p>
+            <p className="total-row">
+              <span>{t('cart_total')}</span>
+              <strong>{formatRupiah(total)}</strong>
+            </p>
             <small>{t('shipping_note')}</small>
           </div>
         </div>

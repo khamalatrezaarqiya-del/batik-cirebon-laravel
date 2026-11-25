@@ -1,150 +1,202 @@
-# Batik Cirebon — Laravel 11 + Inertia (React) + Filament
+# Batik Daffa — E-Commerce & Katalog Batik Trusmi
 
-Migrasi dari prototype React/Vite (`../src`) ke stack Laravel penuh. Tampilan, CSS Hallmark, dan motif SVG batik dipertahankan apa adanya.
+[![Laravel](https://img.shields.io/badge/Laravel-11-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com)
+[![Inertia + React](https://img.shields.io/badge/Inertia.js-React_18-61DAFB?style=flat-square&logo=react&logoColor=111)](https://inertiajs.com)
+[![Filament](https://img.shields.io/badge/Filament-v3_Admin-F59E0B?style=flat-square)](https://filamentphp.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
 
-## Stack
+Platform katalog dan toko daring **Batik Daffa** — menghadirkan kain batik tulis, batik cap, busana siap pakai, dan aksesori karya pengrajin Trusmi, Cirebon. Dibangun dengan **Laravel 11**, **Inertia.js (React)**, dan **Filament v3**, mengusung antarmuka **Minimal & Shadcn** berpalet putih hangat semi coklat tipis agar detail motif batik tampil menonjol.
 
-| Lapisan | Teknologi |
-|---|---|
-| Backend | Laravel 11.57 (PHP 8.2+) |
-| Frontend | Inertia.js + React 18 (Vite) |
-| Admin | Filament v3 (`/admin`) |
-| Database | SQLite (dev) / MySQL (produksi) |
-| Auth | Laravel Breeze |
+---
 
-## Struktur penting
+## Fitur Utama
 
+### Storefront Pembeli
+- **Beranda & Koleksi Terkurasi:** Hero *asymmetric split* dengan etalase motif klikable (Mega Mendung, Kawung, Parang), kategori produk, pilihan unggulan, dan koleksi terbaru.
+- **Katalog Lengkap & Filter Real-Time:** Filter berdasarkan kategori (*Kain, Pakaian, Aksesoris*), 5 jenis motif (*Mega Mendung, Kawung, Parang, Truntum, Wadasan*), pencarian kata kunci, pengurutan harga/terbaru, serta paginasi server-side.
+- **Detail Produk & Varian Ukuran:** Dukungan pemilihan ukuran (`S / M / L / XL`) khusus kategori pakaian, indikator stok real-time, pembatasan jumlah pesanan, serta tombol konsultasi langsung via WhatsApp.
+- **Keranjang & Checkout Aman:** Mendukung belanja tanpa login (*guest checkout*) maupun dengan akun. Validasi ketersediaan stok (*row-level locking*), pengurangan stok otomatis, dan kalkulasi total penuh di sisi server untuk mencegah manipulasi harga.
+- **Pelacakan & Riwayat Pesanan (`/pesanan`):** Pembeli tamu dapat melacak status pesanan menggunakan kode (`ORD-XXXXXX`), sementara pengguna terdaftar dapat memantau seluruh riwayat pesanan melalui `/pesanan` atau `/dashboard`.
+- **Dwi-Bahasa (ID / EN):** Pergantian bahasa Indonesia & Inggris secara instan.
+- **Fallback Motif SVG Inline:** 5 motif batik SVG bawaan (*Mega Mendung, Kawung, Parang, Truntum, Wadasan*) otomatis tampil jika produk belum memiliki foto studio, dan langsung tergantikan saat foto asli diunggah dari admin.
+
+### Panel Admin Pengrajin (`/admin`)
+- **Proteksi Akses Admin (`FilamentUser`):** Hanya akun dengan hak `is_admin = true` yang dapat mengakses dashboard `/admin`.
+- **Manajemen Produk (`ProductResource`):** Tambah/ubah produk, unggah & sunting foto ke `storage/public/products`, atur harga, motif, warna, stok, serta status aktif/nonaktif.
+- **Manajemen Pesanan (`OrderResource`):** Pantau pesanan masuk, ubah status (*Baru → Diproses → Dikirim → Selesai / Batal*), input ongkir dengan perhitungan ulang `grand_total` otomatis, serta tombol pintas hubungi pembeli via WhatsApp.
+
+---
+
+## Arsitektur & Teknologi
+
+| Lapisan | Teknologi | Keterangan |
+| :--- | :--- | :--- |
+| **Backend** | Laravel 11 (PHP 8.2+) | Routing, Eloquent ORM, transaksi database, validasi |
+| **Frontend** | Inertia.js v2 + React 18 + Vite | SPA mulus tanpa API boilerplate |
+| **Design System** | Minimal & Shadcn (Custom CSS Tokens) | Palet putih semi coklat tipis (`#FAF7F2`), aksesibel & Hallmark-compliant |
+| **Admin Panel** | Filament v3 (`/admin`) | Dashboard visual CRUD untuk pengrajin tanpa koding |
+| **Database** | SQLite (Lokal) / MySQL (Produksi) | Migrasi & seeder terstruktur |
+| **Autentikasi** | Laravel Breeze + `is_admin` guard | Login, registrasi, profil, dan proteksi panel admin |
+
+---
+
+## Struktur Direktori Utama
+
+```text
+app/
+├── Filament/Resources/
+│   ├── ProductResource.php          # CRUD produk & upload foto
+│   └── OrderResource.php            # Kelola pesanan, ongkir, status & WA
+├── Http/Controllers/
+│   └── ShopController.php           # Storefront, katalog, checkout, pelacakan pesanan
+├── Http/Middleware/
+│   └── HandleInertiaRequests.php    # Shared props (auth.user, flash)
+└── Models/
+    ├── Category.php
+    ├── Product.php                  # Auto-slug unik
+    ├── Order.php                    # Auto-kalkulasi grand_total (subtotal + ongkir)
+    ├── OrderItem.php
+    └── User.php                     # Implementasi FilamentUser (is_admin)
+
+database/
+├── migrations/                      # users (+is_admin), categories, products, orders, order_items
+└── seeders/
+    ├── DatabaseSeeder.php           # Admin default + panggil ProductSeeder
+    └── ProductSeeder.php            # 26 katalog awal Batik Daffa
+
+resources/
+├── css/index.css                    # Design tokens & stylesheet Minimal & Shadcn
+├── views/app.blade.php              # Shell HTML, font Literata & Plus Jakarta Sans
+└── js/
+    ├── Layouts/ShopLayout.jsx       # Header, navigasi, pencarian, footer
+    ├── Components/                  # Motif.jsx, ProductCard.jsx, SectionTitle.jsx
+    ├── Pages/Shop/                  # Home, Catalog, ProductDetail, Cart, Checkout, Orders, OrderDetail, Help
+    ├── Pages/Auth/ & Dashboard.jsx  # Halaman akun selaras dengan tema toko
+    ├── Data/i18n.js                 # Kamus bahasa ID & EN
+    └── Lib/                         # cart.js, format.js, i18n.js, whatsapp.js
 ```
-app/Http/Controllers/ShopController.php   semua halaman toko + proses checkout
-app/Models/                                Category, Product, Order, OrderItem
-database/migrations/                       4 tabel inti
-database/seeders/ProductSeeder.php         26 produk batik (dari src/data/products.js)
-resources/css/index.css                    CSS Hallmark — jangan diubah tanpa alasan
-resources/js/Layouts/ShopLayout.jsx        header + footer + nav
-resources/js/Pages/Shop/                   7 halaman toko
-resources/js/Components/Motif.jsx          SVG Mega Mendung / Kawung / Parang / Truntum
-resources/js/Lib/                          cart, i18n, format harga, WhatsApp
-routes/web.php                             route toko + auth
-```
 
-## Jalankan lokal
+---
 
-Butuh PHP 8.2+, Composer, Node 18+.
+## Instalasi & Menjalankan Lokal
 
+### Prasyarat
+- PHP **8.2+** dengan ekstensi aktif: `pdo_sqlite` / `pdo_mysql`, `mbstring`, `fileinfo`, `intl`, `openssl`
+- Composer 2+
+- Node.js **18+** & npm
+
+### Langkah Setup
 ```bash
+git clone https://github.com/khamalatrezaarqiya-del/batik-cirebon-laravel.git
+cd batik-cirebon-laravel
+
+# 1. Pasang dependensi backend & siapkan environment
 composer install
 cp .env.example .env
 php artisan key:generate
 
-# SQLite (paling cepat, tanpa server DB)
+# 2. Siapkan database lokal (SQLite) & jalankan migrasi + seeder
 touch database/database.sqlite
 php artisan migrate --seed
-
-npm install
-npm run build        # atau `npm run dev` untuk hot reload
-
-php artisan serve    # http://127.0.0.1:8000
-```
-
-## Alur belanja
-
-1. `/` beranda — hero, kategori, unggulan, terbaru
-2. `/katalog` — filter kategori + motif + cari + urut + paginasi
-3. `/produk/{slug}` — detail, varian ukuran (pakaian), jumlah, tombol WhatsApp
-4. `/keranjang` — keranjang lokal (`localStorage: batik_cart`)
-5. `/checkout` — form penerima + pembayaran; **harga dihitung ulang di server**
-6. `/pesanan/{order_code}` — ringkasan + tombol konfirmasi WhatsApp
-
-Keranjang sengaja tetap di `localStorage` (bukan session server) supaya pengunjung bisa mengumpulkan tanpa login. Yang masuk database hanya pesanan final.
-
-## Admin Filament
-
-```bash
-php artisan make:filament-user      # buat akun admin pertama
-```
-
-Panel di `/admin`. Resource: Produk (dengan upload foto), Pesanan (ubah status baru → diproses → dikirim → selesai).
-
-## Data yang masih placeholder
-
-Ganti sebelum rilis ke `.com`:
-
-| Lokasi | Isi |
-|---|---|
-| `resources/js/Lib/whatsapp.js` | `WA_NUMBER = 'xxxxxxxxxxxx'` → nomor asli format `628xxx` |
-| `resources/js/Lib/format.js` | `PRICE_PLACEHOLDER = true` → `false` setelah harga final |
-| `resources/js/Data/i18n.js` | `announce` (nominal gratis ongkir), `address`, `footer_about` |
-| `resources/js/Layouts/ShopLayout.jsx` | link Instagram/Facebook, email, alamat |
-
-## Deploy ke hosting cPanel (domain .com)
-
-### 1. Build aset
-
-```bash
-npm run build          # hasil di public/build/
-```
-
-### 2. `.env` produksi
-
-```env
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://domainmu.com
-APP_KEY=              # php artisan key:generate --show
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=nama_db
-DB_USERNAME=user_db
-DB_PASSWORD=password_db
-```
-
-### 3. Upload
-
-- Seluruh proyek **kecuali** `public/` → `/home/USER/batik-backend/`
-- Isi `public/` (termasuk `build/`, `.htaccess`, `index.php`) → `/home/USER/public_html/`
-
-Sesuaikan `public_html/index.php`:
-
-```php
-require __DIR__.'/../batik-backend/vendor/autoload.php';
-$app = require_once __DIR__.'/../batik-backend/bootstrap/app.php';
-```
-
-### 4. Setelah upload
-
-```bash
-php artisan migrate --force --seed
 php artisan storage:link
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+
+# 3. Pasang dependensi frontend & kompilasi aset
+npm install
+npm run build        # atau `npm run dev` untuk mode pengembangan
+
+# 4. Jalankan server lokal
+php artisan serve    # buka http://127.0.0.1:8000
 ```
 
-Import database lewat phpMyAdmin bila migrasi tidak bisa dijalankan dari terminal hosting.
+### Akses Panel Admin Lokal
+Seeder otomatis membuat akun admin default untuk pengujian lokal:
+- **URL:** `http://127.0.0.1:8000/admin`
+- **Email:** `admin@batikdaffa.com`
+- **Password:** `admin12345`
 
-### 5. Domain & SSL
+> **Penting:** Segera ubah kata sandi atau buat akun admin baru sebelum rilis ke produksi.
 
-- Arahkan nameserver domain ke hosting
-- Aktifkan **AutoSSL / Let's Encrypt** di cPanel
-- Paksa HTTPS (`.htaccess`: `RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]`)
+---
 
-## Deploy ke VPS (alternatif, lebih mudah)
+## Pengujian Otomatis
 
 ```bash
-git clone <repo> && cd batik-cirebon
+php artisan test
+```
+Mencakup **30+ automated tests** termasuk pengujian fitur toko (`tests/Feature/ShopTest.php`):
+- Normalisasi kartu produk & URL foto `/storage/` di Beranda
+- Validasi & pengurangan stok atomik saat checkout
+- Pelacakan kode pesanan di `/pesanan`
+- Perhitungan ulang `grand_total` saat ongkir diubah di admin
+- Pembatasan akses panel Filament hanya untuk `is_admin = true`
+
+---
+
+## Checklist Sebelum Rilis ke Domain `.com`
+
+Perbarui beberapa placeholder berikut sesuai data final mitra **Batik Daffa**:
+
+| File | Yang Perlu Diperbarui |
+| :--- | :--- |
+| `resources/js/Lib/whatsapp.js` | Ganti `WA_NUMBER` dengan nomor WhatsApp resmi format `628xxxxxxxxxx` |
+| `resources/js/Lib/format.js` | Ubah `PRICE_PLACEHOLDER = false` setelah harga final dikonfirmasi |
+| `resources/js/Layouts/ShopLayout.jsx` | Perbarui tautan media sosial (Instagram/Facebook) & alamat email resmi |
+| `resources/js/Data/i18n.js` | Sesuaikan alamat lengkap workshop, teks pengumuman, dan deskripsi toko |
+| Panel `/admin` | Unggah foto produk asli & ganti password akun admin |
+
+---
+
+## Panduan Deployment (Domain `.com`)
+
+### Opsi A — Shared Hosting (cPanel)
+1. Kompilasi aset produksi secara lokal:
+   ```bash
+   npm run build
+   ```
+2. Atur `.env` produksi:
+   ```env
+   APP_NAME="Batik Daffa"
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://namadomain.com
+
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=nama_db_cpanel
+   DB_USERNAME=user_db_cpanel
+   DB_PASSWORD=password_db_cpanel
+   ```
+3. Pisahkan file saat upload:
+   - Seluruh isi proyek **kecuali** folder `public/` → `/home/USER/batik-daffa-app/`
+   - Seluruh isi folder `public/` (termasuk `build/`, `.htaccess`, `index.php`) → `/home/USER/public_html/`
+4. Sesuaikan path di `public_html/index.php`:
+   ```php
+   require __DIR__.'/../batik-daffa-app/vendor/autoload.php';
+   $app = require_once __DIR__.'/../batik-daffa-app/bootstrap/app.php';
+   ```
+5. Jalankan perintah final (via SSH / Terminal cPanel):
+   ```bash
+   php artisan migrate --force --seed
+   php artisan storage:link
+   php artisan config:cache && php artisan route:cache && php artisan view:cache
+   ```
+6. Aktifkan **AutoSSL / Let's Encrypt** di cPanel untuk domain `.com`.
+
+### Opsi B — Cloud VPS (Ubuntu / Nginx)
+```bash
+git clone https://github.com/khamalatrezaarqiya-del/batik-cirebon-laravel.git
+cd batik-cirebon-laravel
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 php artisan migrate --force --seed
 php artisan storage:link
+php artisan optimize
 ```
+Arahkan `root` Nginx ke direktori `public/` dan aktifkan SSL melalui Certbot.
 
-Nginx root diarahkan ke `public/`. Pakai `php artisan serve` hanya untuk uji lokal.
+---
 
-## Catatan teknis
+## Lisensi
 
-- `ShopController::processCheckout()` memakai `DB::transaction` dan menghitung ulang `subtotal`/`line_total` dari harga di database — klien tidak bisa memanipulasi total.
-- `Product::booted()` membuat slug otomatis dari nama; `uniqueSlug()` menangani duplikat.
-- `HandleInertiaRequests` membagikan `auth.user` ke semua halaman.
-- I18n (ID/EN) di `resources/js/Data/i18n.js` + `Lib/i18n.js`, disimpan di `localStorage: batik_lang`.
+Proyek ini dikembangkan untuk Program Pengabdian Masyarakat — **Batik Daffa (Trusmi, Cirebon)**.

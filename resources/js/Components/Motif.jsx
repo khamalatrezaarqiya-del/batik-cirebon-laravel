@@ -51,10 +51,21 @@ const TRUNTUM = (accent) => (
   </>
 )
 
-const MOTIFS = { mega: MEGA, kawung: KAWUNG, parang: PARANG, truntum: TRUNTUM }
+const WADASAN = (accent) => (
+  <g fill="none" stroke={accent} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 96 L36 62 L58 76 L86 38 L108 66" strokeWidth="6" opacity=".45" />
+    <path d="M22 106 L44 76 L64 88 L90 54 L112 78" strokeWidth="3.5" opacity=".32" />
+    <circle cx="36" cy="40" r="5" fill={accent} opacity=".45" />
+    <circle cx="88" cy="24" r="3.5" fill={accent} opacity=".35" />
+  </g>
+)
+
+const MOTIFS = { mega: MEGA, kawung: KAWUNG, parang: PARANG, truntum: TRUNTUM, wadasan: WADASAN }
 
 export default function Motif({ motif = 'mega', base = '#6b3d1f', accent = '#e6b871', className = '' }) {
-  const id = `m-${motif}-${base.slice(1)}-${accent.slice(1)}`
+  const safeBase = (base || '#6b3d1f').replace(/[^a-zA-Z0-9]/g, '')
+  const safeAccent = (accent || '#e6b871').replace(/[^a-zA-Z0-9]/g, '')
+  const id = `m-${motif}-${safeBase}-${safeAccent}`
   const tile = MOTIFS[motif]?.(accent) || MEGA(accent)
 
   return (
@@ -70,8 +81,15 @@ export default function Motif({ motif = 'mega', base = '#6b3d1f', accent = '#e6b
   )
 }
 
+function resolvePhotoSrc(foto) {
+  if (!foto) return null
+  if (/^(https?:\/\/|\/)/.test(foto)) return foto
+  return `/storage/${foto}`
+}
+
 // Produk dengan foto asli → <img>, produk tanpa foto → motif.
 export function ProductImage({ product, className = '' }) {
-  if (product.foto) return <img className={className} src={product.foto} alt={product.nama} loading="lazy" />
-  return <Motif motif={product.motif} base={product.c1} accent={product.c2} className={className} />
+  const src = resolvePhotoSrc(product?.foto)
+  if (src) return <img className={className} src={src} alt={product.nama} loading="lazy" />
+  return <Motif motif={product?.motif} base={product?.c1} accent={product?.c2} className={className} />
 }

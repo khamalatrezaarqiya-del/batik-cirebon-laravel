@@ -4,4 +4,4 @@ export const WA_NUMBER = 'xxxxxxxxxxxx'
 export const WA = `https://wa.me/${WA_NUMBER}`
 
 export const waLink = (pesan) =>
-  `${WA}?text=${encodeURIComponent(pesan || 'Halo, saya mau tanya soal batik Cirebon.')}`
+  `${WA}?text=${encodeURIComponent(pesan || 'Halo, saya mau tanya soal koleksi Batik Daffa.')}`

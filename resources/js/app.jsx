@@ -5,7 +5,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Batik Cirebon';
+const appName = import.meta.env.VITE_APP_NAME || 'Batik Daffa';
 
 createInertiaApp({
     title: (title) => (title ? `${title} · ${appName}` : appName),
@@ -18,6 +18,6 @@ createInertiaApp({
         createRoot(el).render(<App {...props} />);
     },
     progress: {
-        color: '#c45d3e',
+        color: '#6e4b35',
     },
 });

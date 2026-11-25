@@ -8,10 +8,10 @@ import { formatRupiah } from '../../Lib/format.js'
 import { makeT, readLang } from '../../Lib/i18n.js'
 
 const IconCartEmpty = () => (
-  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H6" />
-    <circle cx="10" cy="20" r="1.4" />
-    <circle cx="18" cy="20" r="1.4" />
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+    <path d="M3 6h18" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
   </svg>
 )
 
@@ -66,15 +66,15 @@ export default function Cart({ products = [] }) {
               <strong>{item.nama}</strong>
               {item.size && <span className="cart-size"> · {item.size}</span>}
               <br />
-              {formatRupiah(item.harga)}
+              <span className="muted-text">{formatRupiah(item.harga)}</span>
             </div>
             <div className="quantity">
-              <button onClick={() => setCart(changeQty(item.key, -1))} aria-label="Kurangi">−</button>
+              <button type="button" onClick={() => setCart(changeQty(item.key, -1))} aria-label="Kurangi">−</button>
               <span>{item.qty}</span>
-              <button onClick={() => setCart(changeQty(item.key, 1))} aria-label="Tambah" disabled={item.qty >= MAX_QTY}>+</button>
+              <button type="button" onClick={() => setCart(changeQty(item.key, 1))} aria-label="Tambah" disabled={item.qty >= MAX_QTY}>+</button>
             </div>
             {item.qty >= MAX_QTY && <span className="qty-note">{t('qty_max')}</span>}
-            <button className="remove" onClick={() => setCart(removeItem(item.key))}>{t('remove')}</button>
+            <button type="button" className="remove" onClick={() => setCart(removeItem(item.key))}>{t('remove')}</button>
           </div>
         ))}
         <div className="cart-total">

@@ -7,7 +7,7 @@ use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
-| Storefront (Batik Cirebon)
+| Storefront (Batik Daffa)
 |--------------------------------------------------------------------------
 */
 Route::controller(ShopController::class)->group(function () {
@@ -17,12 +17,21 @@ Route::controller(ShopController::class)->group(function () {
     Route::get('/keranjang', 'cart')->name('cart');
     Route::get('/checkout', 'checkoutPage')->name('checkout');
     Route::post('/checkout', 'processCheckout')->name('checkout.process');
+    Route::get('/pesanan', 'orders')->name('orders.index');
     Route::get('/pesanan/{orderCode}', 'orderShow')->name('order.show');
     Route::get('/bantuan/{topic?}', 'help')->name('help');
 });
 
 Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+    $orders = \App\Models\Order::with('items.product:id,nama,slug')
+        ->where('user_id', auth()->id())
+        ->latest()
+        ->limit(5)
+        ->get();
+
+    return Inertia::render('Dashboard', [
+        'orders' => $orders,
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
