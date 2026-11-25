@@ -109,10 +109,10 @@ php artisan serve    # buka http://127.0.0.1:8000
 ```
 
 ### Akses Panel Admin Lokal
-Seeder otomatis membuat akun admin default untuk pengujian lokal:
+Seeder otomatis membuat akun admin dummy untuk pengujian lokal:
 - **URL:** `http://127.0.0.1:8000/admin`
-- **Email:** `admin@batikdaffa.com`
-- **Password:** `admin12345`
+- **Email:** `Jajareja@gmail.com`
+- **Password:** `Jajareja@16`
 
 > **Penting:** Segera ubah kata sandi atau buat akun admin baru sebelum rilis ke produksi.
 
