@@ -154,7 +154,9 @@ class ShopController extends Controller
         $product = Product::query()
             ->where('is_active', true)
             ->with('category:id,slug,nama')
-            ->where(fn ($q) => $q->where('slug', $slug)->orWhere('id', $slug))
+            ->where(fn ($q) => $q
+                ->where('slug', $slug)
+                ->when(ctype_digit($slug), fn ($w) => $w->orWhere('id', (int) $slug)))
             ->firstOrFail();
 
         $related = Product::query()
