@@ -49,11 +49,13 @@ class ProductSeeder extends Seeder
         $map = [];
 
         foreach (self::CATEGORIES as $slug => $nama) {
-            $map[$slug] = Category::updateOrCreate(['slug' => $slug], ['nama' => $nama]);
+            $map[$slug] = Category::firstOrCreate(['slug' => $slug], ['nama' => $nama]);
         }
 
-        foreach (self::RAW as [$nama, $kategori, $harga, $c1, $c2, $motif]) {
-            Product::updateOrCreate(
+        $total = count(self::RAW);
+
+        foreach (self::RAW as $idx => [$nama, $kategori, $harga, $c1, $c2, $motif]) {
+            Product::firstOrCreate(
                 ['nama' => $nama],
                 [
                     'category_id' => $map[$kategori]->id,
@@ -63,6 +65,8 @@ class ProductSeeder extends Seeder
                     'motif' => $motif,
                     'stok' => 10,
                     'is_active' => true,
+                    'is_best_seller' => $idx < 8,
+                    'is_new' => $idx >= $total - 4,
                 ],
             );
         }

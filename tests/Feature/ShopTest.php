@@ -280,4 +280,22 @@ class ShopTest extends TestCase
             ->assertStatus(200)
             ->assertSee('Kain halus dan motif Mega Mendung sangat rapi.');
     }
+
+    public function test_database_seeder_is_idempotent_for_production_deploys(): void
+    {
+        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+        $first = Product::orderBy('id')->firstOrFail();
+        $first->update(['harga' => 999000]);
+
+        // Menjalankan seeder ulang tidak menimpa perubahan harga admin dan tidak menduplikasi data
+        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+        $this->assertEquals(999000, $first->fresh()->harga);
+        $this->assertEquals(26, Product::count());
+        $this->assertEquals(8, Product::where('is_best_seller', true)->count());
+        $this->assertEquals(4, Product::where('is_new', true)->count());
+        $this->assertEquals(3, \App\Models\HeroSlide::count());
+        $this->assertEquals(3, Category::count());
+    }
 }

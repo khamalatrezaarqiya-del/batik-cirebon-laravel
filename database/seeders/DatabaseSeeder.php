@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
+        User::firstOrCreate(
             ['email' => 'Jajareja@gmail.com'],
             [
                 'name' => 'Admin Batik Daffa',
