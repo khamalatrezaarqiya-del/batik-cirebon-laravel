@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import ShopLayout from '../../Layouts/ShopLayout.jsx'
 import { ProductImage } from '../../Components/Motif.jsx'
 import SectionTitle from '../../Components/SectionTitle.jsx'
+import CheckoutSteps from '../../Components/CheckoutSteps.jsx'
 import { changeQty, readCart, removeItem, MAX_QTY } from '../../Lib/cart.js'
 import { formatRupiah } from '../../Lib/format.js'
 import { makeT, readLang } from '../../Lib/i18n.js'
@@ -40,11 +41,13 @@ export default function Cart({ products = [] }) {
     .filter(Boolean)
 
   const total = items.reduce((s, i) => s + i.lineTotal, 0)
+  const totalQty = items.reduce((s, i) => s + i.qty, 0)
 
   if (!items.length) {
     return (
       <ShopLayout title={t('nav_cart')}>
         <div className="section">
+          <SectionTitle>{t('nav_cart')}</SectionTitle>
           <div className="empty">
             <div className="empty-icon"><IconCartEmpty /></div>
             <p>{t('cart_empty')}</p>
@@ -58,28 +61,58 @@ export default function Cart({ products = [] }) {
   return (
     <ShopLayout title={t('nav_cart')}>
       <div className="section">
-        <SectionTitle>{t('nav_cart')}</SectionTitle>
-        {items.map((item) => (
-          <div className="cart-item" key={item.key}>
-            <ProductImage product={item} />
-            <div className="grow">
-              <strong>{item.nama}</strong>
-              {item.size && <span className="cart-size"> · {item.size}</span>}
-              <br />
-              <span className="muted-text">{formatRupiah(item.harga)}</span>
-            </div>
-            <div className="quantity">
-              <button type="button" onClick={() => setCart(changeQty(item.key, -1))} aria-label="Kurangi">−</button>
-              <span>{item.qty}</span>
-              <button type="button" onClick={() => setCart(changeQty(item.key, 1))} aria-label="Tambah" disabled={item.qty >= MAX_QTY}>+</button>
-            </div>
-            {item.qty >= MAX_QTY && <span className="qty-note">{t('qty_max')}</span>}
-            <button type="button" className="remove" onClick={() => setCart(removeItem(item.key))}>{t('remove')}</button>
+        <CheckoutSteps current={1} />
+        <SectionTitle subtitle={`${totalQty} item siap untuk dikonfirmasi.`}>{t('nav_cart')}</SectionTitle>
+
+        <div className="checkout-layout">
+          <div className="cart-list">
+            {items.map((item) => (
+              <div className="cart-item" key={item.key}>
+                <Link href={`/produk/${item.slug}`} className="cart-item-thumb">
+                  <ProductImage product={item} />
+                </Link>
+                <div className="grow">
+                  <Link href={`/produk/${item.slug}`} className="cart-item-title">
+                    <strong>{item.nama}</strong>
+                  </Link>
+                  <div className="cart-item-sub">
+                    {item.size && <span className="drawer-pill">{t('size_label')} {item.size}</span>}
+                    <span className="muted-text">{formatRupiah(item.harga)} / pcs</span>
+                  </div>
+                </div>
+                <div className="cart-item-controls">
+                  <div className="quantity">
+                    <button type="button" onClick={() => setCart(changeQty(item.key, -1))} aria-label="Kurangi">−</button>
+                    <span>{item.qty}</span>
+                    <button type="button" onClick={() => setCart(changeQty(item.key, 1))} aria-label="Tambah" disabled={item.qty >= MAX_QTY}>+</button>
+                  </div>
+                  <strong className="price">{formatRupiah(item.lineTotal)}</strong>
+                  <button type="button" className="remove" onClick={() => setCart(removeItem(item.key))}>{t('remove')}</button>
+                </div>
+                {item.qty >= MAX_QTY && <span className="qty-note">{t('qty_max')}</span>}
+              </div>
+            ))}
           </div>
-        ))}
-        <div className="cart-total">
-          <span>{t('cart_total')}: {formatRupiah(total)}</span>
-          <Link className="button" href="/checkout">{t('checkout')}</Link>
+
+          <aside className="summary">
+            <h2>{t('order_summary')}</h2>
+            <p>
+              <span>{t('subtotal')} ({totalQty} item)</span>
+              <strong>{formatRupiah(total)}</strong>
+            </p>
+            <p>
+              <span>{t('shipping_label')}</span>
+              <span className="muted-text">Dikonfirmasi WA</span>
+            </p>
+            <hr />
+            <p className="total-row">
+              <span>{t('cart_total')}</span>
+              <strong>{formatRupiah(total)}</strong>
+            </p>
+            <small>{t('shipping_note')}</small>
+            <Link className="button button-lg" href="/checkout" style={{ marginTop: 8 }}>{t('checkout')}</Link>
+            <Link className="button ghost" href="/katalog">{t('continue_shopping')}</Link>
+          </aside>
         </div>
       </div>
     </ShopLayout>

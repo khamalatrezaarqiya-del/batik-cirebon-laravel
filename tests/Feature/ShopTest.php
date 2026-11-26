@@ -116,4 +116,168 @@ class ShopTest extends TestCase
         $this->assertFalse($buyer->canAccessPanel($panel));
         $this->assertTrue($admin->canAccessPanel($panel));
     }
+
+    public function test_catalog_supports_price_stock_filters_and_best_sort(): void
+    {
+        $cheap = $this->seedSampleProduct([
+            'nama' => 'Selendang Murah',
+            'slug' => 'selendang-murah',
+            'harga' => 120000,
+            'stok' => 4,
+        ]);
+        $soldOut = $this->seedSampleProduct([
+            'nama' => 'Kemeja Habis',
+            'slug' => 'kemeja-habis',
+            'harga' => 420000,
+            'stok' => 0,
+        ]);
+
+        $this->get('/katalog?price=under-200')
+            ->assertStatus(200)
+            ->assertSee($cheap->nama)
+            ->assertDontSee($soldOut->nama);
+
+        $this->get('/katalog?stock=in_stock&sort=best')
+            ->assertStatus(200)
+            ->assertSee($cheap->nama)
+            ->assertDontSee($soldOut->nama);
+    }
+
+    public function test_admin_dashboard_pages_render_and_sync_prices_and_new_products_to_web(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $cat = Category::firstOrCreate(['slug' => 'kain'], ['nama' => 'Kain']);
+
+        $this->actingAs($admin, 'admin')
+            ->get('/admin')
+            ->assertStatus(200)
+            ->assertSee('Tambah Produk Cepat ke Katalog Web')
+            ->assertSee('Kelola Cepat Harga');
+
+        // Sesi admin terpisah dari sesi pelanggan: halaman /login pelanggan tetap bisa diakses (tidak dianggap login pelanggan)
+        $this->actingAs($admin, 'admin')
+            ->get('/login')
+            ->assertStatus(200);
+
+        $this->actingAs($admin, 'admin')->get('/admin/products')->assertStatus(200);
+        $this->actingAs($admin, 'admin')->get('/admin/products/create')->assertStatus(200);
+        $this->actingAs($admin, 'admin')->get('/admin/categories')->assertStatus(200);
+        $this->actingAs($admin, 'admin')->get('/admin/orders')->assertStatus(200);
+        $this->actingAs($admin, 'admin')->get('/admin/hero-slides')->assertStatus(200);
+        $this->actingAs($admin, 'admin')->get('/admin/tampilan-toko')->assertStatus(200);
+        $this->actingAs($admin, 'admin')->get('/admin/pengaturan-pembayaran')->assertStatus(200);
+
+        // Pengaturan rekening & QRIS tampil langsung di checkout
+        \App\Models\SiteSetting::setValue('pay_bank_account', '9988 7766 55');
+        $this->get('/checkout')
+            ->assertStatus(200)
+            ->assertSee('9988 7766 55');
+
+        // Slide hero & banner kustom dari admin langsung tampil di Beranda
+        \App\Models\HeroSlide::create([
+            'title' => 'Kampanye Batik Daffa 2026',
+            'description' => 'Koleksi eksklusif langsung dari admin.',
+            'cta_label' => 'Lihat Sekarang',
+            'cta_url' => '/katalog',
+            'image' => 'banners/custom-hero.jpg',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        \App\Models\SiteSetting::setValue('featured_title', 'Koleksi Spesial Admin');
+        \App\Models\SiteSetting::setValue('featured_image', 'banners/custom-featured.jpg');
+
+        $this->get('/')
+            ->assertStatus(200)
+            ->assertSee('Kampanye Batik Daffa 2026')
+            ->assertSee('\/storage\/banners\/custom-hero.jpg', false)
+            ->assertSee('Koleksi Spesial Admin')
+            ->assertSee('\/storage\/banners\/custom-featured.jpg', false);
+
+        $product = Product::create([
+            'category_id' => $cat->id,
+            'nama' => 'Batik Tulis Daffa Eksklusif',
+            'slug' => 'batik-tulis-daffa-eksklusif',
+            'harga' => 450000,
+            'motif' => 'mega',
+            'c1' => '#6b3d1f',
+            'c2' => '#e6b871',
+            'stok' => 7,
+            'is_active' => true,
+            'is_best_seller' => true,
+            'is_new' => true,
+        ]);
+
+        // Langsung tampil di beranda, katalog sesuai kategori (beserta label Best Seller & Baru), dan API sinkron harga
+        $this->get('/')
+            ->assertStatus(200)
+            ->assertSee($product->nama)
+            ->assertSee('&quot;is_best_seller&quot;:true', false)
+            ->assertSee('&quot;is_new&quot;:true', false);
+        $this->get('/katalog?cat=kain')
+            ->assertStatus(200)
+            ->assertSee($product->nama)
+            ->assertSee('&quot;is_best_seller&quot;:true', false)
+            ->assertSee('&quot;is_new&quot;:true', false);
+        $this->getJson("/api/cart-sync?ids={$product->id}")
+            ->assertOk()
+            ->assertJsonPath('products.0.harga', 450000);
+
+        // Update harga di admin langsung sinkron ke web & cart-sync API
+        $product->update(['harga' => 495000]);
+
+        $this->get('/produk/' . $product->slug)
+            ->assertStatus(200)
+            ->assertSee('495000');
+
+        $this->getJson("/api/cart-sync?ids={$product->id}")
+            ->assertOk()
+            ->assertJsonPath('products.0.harga', 495000);
+
+        // Route /storage/{path} menyajikan file foto yang sudah terupload di disk public
+        \Illuminate\Support\Facades\Storage::disk('public')->put('products/test-sync.txt', 'ok');
+        $this->get('/storage/products/test-sync.txt')->assertStatus(200);
+        \Illuminate\Support\Facades\Storage::disk('public')->delete('products/test-sync.txt');
+    }
+
+    public function test_customer_can_confirm_order_completed_and_submit_star_review(): void
+    {
+        $product = $this->seedSampleProduct();
+
+        $this->post('/checkout', [
+            'recipient_name' => 'Rina Kartika',
+            'phone' => '081234567890',
+            'shipping_address' => 'Cirebon',
+            'payment_method' => 'transfer',
+            'items' => [
+                ['product_id' => $product->id, 'size' => 'M', 'qty' => 1],
+            ],
+        ]);
+
+        $order = Order::firstOrFail();
+        $order->update(['status' => 'dikirim']);
+
+        // Konsumen konfirmasi pesanan selesai
+        $this->post("/pesanan/{$order->order_code}/selesai")
+            ->assertRedirect(route('order.show', $order->order_code));
+
+        $this->assertEquals('selesai', $order->fresh()->status);
+
+        // Konsumen kirim bintang & ulasan
+        $this->post("/pesanan/{$order->order_code}/ulasan", [
+            'rating' => 5,
+            'comment' => 'Kain halus dan motif Mega Mendung sangat rapi.',
+        ])->assertRedirect(route('order.show', $order->order_code));
+
+        $this->assertDatabaseHas('reviews', [
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'rating' => 5,
+            'comment' => 'Kain halus dan motif Mega Mendung sangat rapi.',
+        ]);
+
+        // Ulasan tampil di halaman detail produk
+        $this->get("/produk/{$product->slug}")
+            ->assertStatus(200)
+            ->assertSee('Kain halus dan motif Mega Mendung sangat rapi.');
+    }
 }

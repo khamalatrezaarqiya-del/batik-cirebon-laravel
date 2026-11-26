@@ -2,13 +2,19 @@ import { Link, useForm, usePage } from '@inertiajs/react'
 import { useEffect, useMemo, useState } from 'react'
 import ShopLayout from '../../Layouts/ShopLayout.jsx'
 import SectionTitle from '../../Components/SectionTitle.jsx'
+import CheckoutSteps from '../../Components/CheckoutSteps.jsx'
+import PaymentInstructions from '../../Components/PaymentInstructions.jsx'
 import { clearCart, readCart } from '../../Lib/cart.js'
 import { formatRupiah } from '../../Lib/format.js'
 import { makeT, readLang } from '../../Lib/i18n.js'
 
-const PAYMENTS = ['transfer', 'ewallet', 'cod']
+const PAYMENTS = [
+  { key: 'transfer', desc: 'Nomor rekening langsung tampil di bawah setelah dipilih.' },
+  { key: 'ewallet', desc: 'Scan QRIS langsung (GoPay, OVO, DANA, ShopeePay, m-Banking).' },
+  { key: 'cod', desc: 'Bayar tunai langsung saat paket tiba di alamat tujuan.' },
+]
 
-export default function Checkout({ products = [] }) {
+export default function Checkout({ products = [], paymentInfo = null }) {
   const { props } = usePage()
   const user = props?.auth?.user || null
   const [lang, setLang] = useState(() => readLang())
@@ -57,6 +63,7 @@ export default function Checkout({ products = [] }) {
     return (
       <ShopLayout title={t('checkout_title')}>
         <div className="section">
+          <SectionTitle>{t('checkout_title')}</SectionTitle>
           <div className="empty">
             <p>{t('cart_empty')}</p>
             <Link className="button" href="/katalog">{t('continue_shopping')}</Link>
@@ -66,30 +73,39 @@ export default function Checkout({ products = [] }) {
     )
   }
 
+  const errorList = Object.entries(form.errors)
+
   return (
     <ShopLayout title={t('checkout_title')}>
       <div className="section">
-        <SectionTitle>{t('checkout_title')}</SectionTitle>
+        <CheckoutSteps current={2} />
+        <SectionTitle subtitle="Lengkapi alamat dan pilih metode pembayaran. Admin kami akan mengonfirmasi dan menghubungi Anda setelah pesanan tercatat.">
+          {t('checkout_title')}
+        </SectionTitle>
+
         <div className="checkout-layout">
           <form className="form" onSubmit={submit}>
             <h2>{t('checkout_recipient')}</h2>
 
-            {Object.keys(form.errors).length > 0 && (
-              <p className="error">{Object.values(form.errors)[0]}</p>
+            {errorList.length > 0 && (
+              <div className="error" role="alert">
+                {errorList[0][1]}
+              </div>
             )}
 
             <label>
-              {t('recipient_name')}
+              <span>{t('recipient_name')} <abbr className="req" title="Wajib diisi">*</abbr></span>
               <input
                 name="recipient_name"
                 value={form.data.recipient_name}
                 onChange={(e) => form.setData('recipient_name', e.target.value)}
                 required
                 autoComplete="name"
+                aria-invalid={Boolean(form.errors.recipient_name)}
               />
             </label>
             <label>
-              {t('recipient_phone')}
+              <span>{t('recipient_phone')} <abbr className="req" title="Wajib diisi">*</abbr></span>
               <input
                 name="phone"
                 type="tel"
@@ -98,51 +114,65 @@ export default function Checkout({ products = [] }) {
                 placeholder="08xxxxxxxxxx"
                 required
                 autoComplete="tel"
+                aria-invalid={Boolean(form.errors.phone)}
               />
+              <span className="field-hint">Admin Batik Daffa akan menghubungi nomor ini untuk konfirmasi pengiriman &amp; resi.</span>
             </label>
             <label>
-              {t('shipping_address')}
+              <span>{t('shipping_address')} <abbr className="req" title="Wajib diisi">*</abbr></span>
               <textarea
                 name="shipping_address"
                 rows="3"
                 value={form.data.shipping_address}
                 onChange={(e) => form.setData('shipping_address', e.target.value)}
+                placeholder="Jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, kode pos…"
                 required
                 autoComplete="street-address"
+                aria-invalid={Boolean(form.errors.shipping_address)}
               />
             </label>
             <label>
-              {t('note')}
+              <span>{t('note')}</span>
               <textarea
                 name="note"
                 rows="2"
                 value={form.data.note}
                 onChange={(e) => form.setData('note', e.target.value)}
+                placeholder="Contoh: bungkus kado, pilih ekspedisi JNE/J&T, dsb."
               />
             </label>
 
             <h3>{t('payment_method')}</h3>
             <div className="radio-group">
               {PAYMENTS.map((p) => (
-                <label className={`radio-row${form.data.payment_method === p ? ' selected' : ''}`} key={p}>
+                <label className={`radio-row${form.data.payment_method === p.key ? ' selected' : ''}`} key={p.key}>
                   <input
                     type="radio"
                     name="payment_method"
-                    value={p}
-                    checked={form.data.payment_method === p}
-                    onChange={() => form.setData('payment_method', p)}
+                    value={p.key}
+                    checked={form.data.payment_method === p.key}
+                    onChange={() => form.setData('payment_method', p.key)}
                   />
-                  <span>{t('pay_' + p)}</span>
+                  <span className="radio-body">
+                    <strong>{t('pay_' + p.key)}</strong>
+                    <small>{p.desc}</small>
+                  </span>
                 </label>
               ))}
             </div>
 
-            <button className="button" type="submit" disabled={form.processing}>
-              {t('place_order')}
+            <PaymentInstructions
+              method={form.data.payment_method}
+              paymentInfo={paymentInfo}
+              amount={total}
+            />
+
+            <button className="button button-lg" type="submit" disabled={form.processing} aria-busy={form.processing}>
+              {form.processing ? 'Memproses Pesanan…' : t('place_order')}
             </button>
           </form>
 
-          <div className="summary">
+          <aside className="summary">
             <h2>{t('order_summary')}</h2>
             {items.map((i) => (
               <p key={i.key}>
@@ -156,7 +186,8 @@ export default function Checkout({ products = [] }) {
               <strong>{formatRupiah(total)}</strong>
             </p>
             <small>{t('shipping_note')}</small>
-          </div>
+            <Link className="text-link" href="/keranjang" style={{ marginTop: 4 }}>← Ubah Keranjang</Link>
+          </aside>
         </div>
       </div>
     </ShopLayout>

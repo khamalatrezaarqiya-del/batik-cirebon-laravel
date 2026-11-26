@@ -1,120 +1,98 @@
-import DangerButton from '@/Components/DangerButton';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import Modal from '@/Components/Modal';
-import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
-import { useForm } from '@inertiajs/react';
-import { useRef, useState } from 'react';
+import { useForm } from '@inertiajs/react'
+import { useEffect, useRef, useState } from 'react'
 
-export default function DeleteUserForm({ className = '' }) {
-    const [confirmingUserDeletion, setConfirmingUserDeletion] = useState(false);
-    const passwordInput = useRef();
+export default function DeleteUserForm() {
+  const [confirming, setConfirming] = useState(false)
+  const passwordInput = useRef()
 
-    const {
-        data,
-        setData,
-        delete: destroy,
-        processing,
-        reset,
-        errors,
-        clearErrors,
-    } = useForm({
-        password: '',
-    });
+  const { data, setData, delete: destroy, processing, reset, errors, clearErrors } = useForm({
+    password: '',
+  })
 
-    const confirmUserDeletion = () => {
-        setConfirmingUserDeletion(true);
-    };
+  const closeModal = () => {
+    setConfirming(false)
+    clearErrors()
+    reset()
+  }
 
-    const deleteUser = (e) => {
-        e.preventDefault();
+  useEffect(() => {
+    if (!confirming) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeModal()
+    }
+    window.addEventListener('keydown', onKey)
+    passwordInput.current?.focus()
+    return () => window.removeEventListener('keydown', onKey)
+  }, [confirming])
 
-        destroy(route('profile.destroy'), {
-            preserveScroll: true,
-            onSuccess: () => closeModal(),
-            onError: () => passwordInput.current.focus(),
-            onFinish: () => reset(),
-        });
-    };
+  const deleteUser = (e) => {
+    e.preventDefault()
+    destroy(route('profile.destroy'), {
+      preserveScroll: true,
+      onSuccess: () => closeModal(),
+      onError: () => passwordInput.current?.focus(),
+      onFinish: () => reset(),
+    })
+  }
 
-    const closeModal = () => {
-        setConfirmingUserDeletion(false);
+  return (
+    <section className="profile-section">
+      <header className="profile-head">
+        <h2>Hapus Akun</h2>
+        <p className="muted-text">
+          Menghapus akun akan menghapus data profil secara permanen. Pastikan Anda sudah mencatat kode pesanan penting sebelumnya.
+        </p>
+      </header>
 
-        clearErrors();
-        reset();
-    };
+      <div className="profile-actions">
+        <button type="button" className="button danger" onClick={() => setConfirming(true)}>
+          Hapus Akun Permanen
+        </button>
+      </div>
 
-    return (
-        <section className={`space-y-6 ${className}`}>
-            <header>
-                <h2 className="text-lg font-medium text-gray-900">
-                    Delete Account
-                </h2>
+      {confirming && (
+        <div className="modal-backdrop" onClick={closeModal} role="presentation">
+          <div
+            className="modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <form onSubmit={deleteUser} className="form form-inline">
+              <h2 id="delete-modal-title">Konfirmasi Penghapusan Akun</h2>
+              <p className="muted-text">
+                Masukkan kata sandi Anda untuk mengonfirmasi bahwa Anda ingin menghapus akun ini secara permanen.
+              </p>
 
-                <p className="mt-1 text-sm text-gray-600">
-                    Once your account is deleted, all of its resources and data
-                    will be permanently deleted. Before deleting your account,
-                    please download any data or information that you wish to
-                    retain.
-                </p>
-            </header>
+              {errors.password && <p className="error" role="alert">{errors.password}</p>}
 
-            <DangerButton onClick={confirmUserDeletion}>
-                Delete Account
-            </DangerButton>
+              <label>
+                <span>Kata Sandi</span>
+                <input
+                  id="delete_password"
+                  type="password"
+                  name="password"
+                  ref={passwordInput}
+                  value={data.password}
+                  onChange={(e) => setData('password', e.target.value)}
+                  placeholder="Masukkan kata sandi"
+                  required
+                />
+              </label>
 
-            <Modal show={confirmingUserDeletion} onClose={closeModal}>
-                <form onSubmit={deleteUser} className="p-6">
-                    <h2 className="text-lg font-medium text-gray-900">
-                        Are you sure you want to delete your account?
-                    </h2>
-
-                    <p className="mt-1 text-sm text-gray-600">
-                        Once your account is deleted, all of its resources and
-                        data will be permanently deleted. Please enter your
-                        password to confirm you would like to permanently delete
-                        your account.
-                    </p>
-
-                    <div className="mt-6">
-                        <InputLabel
-                            htmlFor="password"
-                            value="Password"
-                            className="sr-only"
-                        />
-
-                        <TextInput
-                            id="password"
-                            type="password"
-                            name="password"
-                            ref={passwordInput}
-                            value={data.password}
-                            onChange={(e) =>
-                                setData('password', e.target.value)
-                            }
-                            className="mt-1 block w-3/4"
-                            isFocused
-                            placeholder="Password"
-                        />
-
-                        <InputError
-                            message={errors.password}
-                            className="mt-2"
-                        />
-                    </div>
-
-                    <div className="mt-6 flex justify-end">
-                        <SecondaryButton onClick={closeModal}>
-                            Cancel
-                        </SecondaryButton>
-
-                        <DangerButton className="ms-3" disabled={processing}>
-                            Delete Account
-                        </DangerButton>
-                    </div>
-                </form>
-            </Modal>
-        </section>
-    );
+              <div className="profile-actions">
+                <button type="button" className="button ghost" onClick={closeModal}>
+                  Batal
+                </button>
+                <button type="submit" className="button danger" disabled={processing}>
+                  {processing ? 'Menghapus…' : 'Ya, Hapus Akun'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </section>
+  )
 }

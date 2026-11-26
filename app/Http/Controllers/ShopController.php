@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\HeroSlide;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Review;
+use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,9 +20,16 @@ class ShopController extends Controller
 {
     public function index(): Response
     {
+        $hasManualBest = Product::where('is_active', true)->where('is_best_seller', true)->exists();
+        $hasManualNew = Product::where('is_active', true)->where('is_new', true)->exists();
+
         $featured = Product::query()
             ->where('is_active', true)
+            ->when($hasManualBest, fn ($q) => $q->where('is_best_seller', true))
             ->with('category:id,slug,nama')
+            ->withSum('orderItems as sold_qty', 'qty')
+            ->orderByDesc('is_best_seller')
+            ->orderByDesc('sold_qty')
             ->orderBy('id')
             ->limit(8)
             ->get()
@@ -28,6 +38,7 @@ class ShopController extends Controller
 
         $newest = Product::query()
             ->where('is_active', true)
+            ->when($hasManualNew, fn ($q) => $q->where('is_new', true))
             ->with('category:id,slug,nama')
             ->latest('id')
             ->limit(4)
@@ -35,12 +46,63 @@ class ShopController extends Controller
             ->map(fn (Product $p) => $this->card($p))
             ->values();
 
+        $categories = Category::withCount([
+            'products' => fn ($q) => $q->where('is_active', true),
+        ])->orderBy('id')->get()->map(function (Category $c) {
+            $fallback = match ($c->slug) {
+                'kain' => '/images/categories/kain.jpg',
+                'pakaian' => '/images/categories/pakaian.jpg',
+                'aksesoris' => '/images/categories/aksesoris.jpg',
+                default => '/images/categories/kain.jpg',
+            };
+
+            return [
+                'id' => $c->id,
+                'slug' => $c->slug,
+                'nama' => $c->nama,
+                'products_count' => $c->products_count,
+                'image' => HeroSlide::resolveMediaUrl($c->image, $fallback),
+            ];
+        })->values();
+
+        $heroSlides = HeroSlide::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (HeroSlide $s) => [
+                'id' => 'slide-' . $s->id,
+                'image' => $s->resolvedImageUrl(),
+                'alt' => $s->title,
+                'focal' => $s->focal_point ?: '72% 45%',
+                'headline' => $s->title,
+                'description' => $s->description ?? '',
+                'ctaLabel' => $s->cta_label ?: 'Jelajahi Koleksi',
+                'ctaHref' => $s->cta_url ?: '/katalog',
+            ])
+            ->values();
+
+        $featuredBanner = [
+            'label' => SiteSetting::getValue('featured_label', 'Koleksi Pilihan'),
+            'title' => SiteSetting::getValue('featured_title', 'Harmoni Sogan & Mega Mendung'),
+            'description' => SiteSetting::getValue(
+                'featured_description',
+                'Perpaduan motif pesisir Cirebon dan nuansa sogan hangat dalam kain lembaran, kemeja, serta selendang untuk beragam momen.'
+            ),
+            'ctaLabel' => SiteSetting::getValue('featured_cta_label', 'Lihat Koleksi Mega Mendung'),
+            'ctaHref' => SiteSetting::getValue('featured_cta_url', '/katalog?motif=mega'),
+            'image' => HeroSlide::resolveMediaUrl(
+                SiteSetting::getValue('featured_image'),
+                '/images/campaigns/featured-collection.jpg'
+            ),
+        ];
+
         return Inertia::render('Shop/Home', [
             'featured' => $featured,
             'newest' => $newest,
-            'categories' => Category::withCount([
-                'products' => fn ($q) => $q->where('is_active', true),
-            ])->orderBy('id')->get(),
+            'categories' => $categories,
+            'heroSlides' => $heroSlides,
+            'featuredBanner' => $featuredBanner,
         ]);
     }
 
@@ -48,6 +110,8 @@ class ShopController extends Controller
     {
         $cat = $request->string('cat')->toString() ?: 'all';
         $motif = $request->string('motif')->toString() ?: 'all';
+        $price = $request->string('price')->toString() ?: 'all';
+        $stock = $request->string('stock')->toString() ?: 'all';
         $term = trim($request->string('q')->toString());
         $sort = $request->string('sort')->toString() ?: 'new';
 
@@ -56,21 +120,32 @@ class ShopController extends Controller
             ->with('category:id,slug,nama')
             ->when($cat !== 'all', fn ($q) => $q->whereHas('category', fn ($c) => $c->where('slug', $cat)))
             ->when($motif !== 'all', fn ($q) => $q->where('motif', $motif))
+            ->when($price === 'under-200', fn ($q) => $q->where('harga', '<', 200000))
+            ->when($price === '200-350', fn ($q) => $q->whereBetween('harga', [200000, 350000]))
+            ->when($price === 'above-350', fn ($q) => $q->where('harga', '>', 350000))
+            ->when($stock === 'in_stock', fn ($q) => $q->where('stok', '>', 0))
             ->when($term !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('nama', 'like', "%{$term}%")
                 ->orWhere('deskripsi', 'like', "%{$term}%")
                 ->orWhere('motif', 'like', "%{$term}%")))
+            ->when($sort === 'best', fn ($q) => $q
+                ->withSum('orderItems as sold_qty', 'qty')
+                ->orderByDesc('is_best_seller')
+                ->orderByDesc('sold_qty')
+                ->orderBy('id'))
             ->when($sort === 'cheap', fn ($q) => $q->orderBy('harga'))
             ->when($sort === 'pricey', fn ($q) => $q->orderByDesc('harga'))
-            ->when($sort === 'new', fn ($q) => $q->orderByDesc('id'))
+            ->when(! in_array($sort, ['best', 'cheap', 'pricey'], true), fn ($q) => $q->orderByDesc('id'))
             ->paginate(12)
             ->withQueryString()
             ->through(fn (Product $p) => $this->card($p));
 
         return Inertia::render('Shop/Catalog', [
             'products' => $products,
-            'categories' => Category::orderBy('id')->get(['slug', 'nama']),
-            'filters' => compact('cat', 'motif', 'term', 'sort'),
+            'categories' => Category::withCount([
+                'products' => fn ($q) => $q->where('is_active', true),
+            ])->orderBy('id')->get(['id', 'slug', 'nama']),
+            'filters' => compact('cat', 'motif', 'price', 'stock', 'term', 'sort'),
         ]);
     }
 
@@ -92,11 +167,19 @@ class ShopController extends Controller
             ->map(fn (Product $p) => $this->card($p))
             ->values();
 
+        $reviews = $product->reviews()
+            ->latest()
+            ->limit(20)
+            ->get(['id', 'reviewer_name', 'rating', 'comment', 'created_at']);
+
         return Inertia::render('Shop/ProductDetail', [
             'product' => $this->card($product) + [
                 'deskripsi' => $product->deskripsi,
                 'stok' => $product->stok,
+                'rating_avg' => $reviews->count() ? round((float) $reviews->avg('rating'), 1) : null,
+                'reviews_count' => $reviews->count(),
             ],
+            'reviews' => $reviews,
             'related' => $related,
         ]);
     }
@@ -112,6 +195,7 @@ class ShopController extends Controller
     {
         return Inertia::render('Shop/Checkout', [
             'products' => $this->cartCatalog(),
+            'paymentInfo' => $this->paymentInfo(),
         ]);
     }
 
@@ -245,7 +329,7 @@ class ShopController extends Controller
 
     public function orderShow(string $orderCode): Response
     {
-        $order = Order::with('items.product:id,nama,slug,c1,c2,motif,foto')
+        $order = Order::with(['items.product:id,nama,slug,c1,c2,motif,foto', 'reviews'])
             ->where('order_code', $orderCode)
             ->firstOrFail();
 
@@ -257,13 +341,152 @@ class ShopController extends Controller
 
         return Inertia::render('Shop/OrderDetail', [
             'order' => $order,
+            'paymentInfo' => $this->paymentInfo(),
         ]);
+    }
+
+    /** Konsumen mengonfirmasi pesanan diterima / selesai untuk membuka form rating & ulasan. */
+    public function completeOrder(Request $request, string $orderCode)
+    {
+        $order = Order::where('order_code', $orderCode)->firstOrFail();
+
+        if ($order->user_id && auth('web')->check() && auth('web')->id() !== $order->user_id) {
+            abort(403);
+        }
+
+        if (! in_array($order->status, ['diproses', 'dikirim'], true)) {
+            return redirect()
+                ->route('order.show', $order->order_code)
+                ->withErrors(['status' => 'Pesanan hanya dapat dikonfirmasi selesai setelah diproses atau dikirim.']);
+        }
+
+        $order->update(['status' => 'selesai']);
+
+        return redirect()
+            ->route('order.show', $order->order_code)
+            ->with('success', 'Pesanan selesai dikonfirmasi! Silakan berikan bintang dan ulasan Anda di bawah.');
+    }
+
+    /** Simpan bintang (1-5) & ulasan konsumen untuk pesanan yang sudah selesai. */
+    public function storeReview(Request $request, string $orderCode)
+    {
+        $order = Order::with('items')->where('order_code', $orderCode)->firstOrFail();
+
+        if ($order->user_id && auth('web')->check() && auth('web')->id() !== $order->user_id) {
+            abort(403);
+        }
+
+        if ($order->status !== 'selesai') {
+            return redirect()
+                ->route('order.show', $order->order_code)
+                ->withErrors(['review' => 'Konfirmasi pesanan selesai terlebih dahulu sebelum memberi ulasan.']);
+        }
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $productIds = $order->items->pluck('product_id')->unique()->filter();
+
+        foreach ($productIds as $pid) {
+            Review::updateOrCreate(
+                ['order_id' => $order->id, 'product_id' => $pid],
+                [
+                    'user_id' => auth('web')->id() ?? $order->user_id,
+                    'reviewer_name' => $order->recipient_name,
+                    'rating' => (int) $data['rating'],
+                    'comment' => filled($data['comment'] ?? null) ? trim($data['comment']) : null,
+                ],
+            );
+        }
+
+        return redirect()
+            ->route('order.show', $order->order_code)
+            ->with('success', 'Terima kasih! Bintang dan ulasan Anda berhasil disimpan.');
+    }
+
+    /** Informasi rekening bank, QRIS, dan COD yang dikelola dari Admin. */
+    private function paymentInfo(): array
+    {
+        return [
+            'bank' => [
+                'name' => SiteSetting::getValue('pay_bank_name', 'Bank BCA'),
+                'account' => SiteSetting::getValue('pay_bank_account', '1340 5829 10'),
+                'holder' => SiteSetting::getValue('pay_bank_holder', 'Batik Daffa Trusmi'),
+                'note' => SiteSetting::getValue(
+                    'pay_bank_note',
+                    'Transfer sesuai nominal total pesanan. Admin akan memverifikasi pembayaran dan menghubungi Anda.'
+                ),
+            ],
+            'qris' => [
+                'image' => HeroSlide::resolveMediaUrl(
+                    SiteSetting::getValue('pay_qris_image'),
+                    '/images/qris-default.svg'
+                ),
+                'merchant' => SiteSetting::getValue('pay_qris_merchant', 'Batik Daffa · Trusmi Cirebon'),
+                'info' => SiteSetting::getValue(
+                    'pay_ewallet_info',
+                    'Scan QRIS melalui GoPay, OVO, DANA, ShopeePay, atau mobile banking.'
+                ),
+            ],
+            'cod' => [
+                'note' => SiteSetting::getValue(
+                    'pay_cod_note',
+                    'Bayar tunai langsung ke kurir saat paket tiba. Admin akan menghubungi Anda terlebih dahulu sebelum paket dikirim.'
+                ),
+            ],
+        ];
     }
 
     public function help(?string $topic = null): Response
     {
         return Inertia::render('Shop/Help', [
             'topic' => $topic ?? 'cara-belanja',
+        ]);
+    }
+
+    /** Sinkronisasi harga, nama, stok, dan foto terbaru dari DB untuk Mini Cart Drawer. */
+    public function cartSync(Request $request)
+    {
+        $ids = collect(explode(',', (string) $request->query('ids', '')))
+            ->map(fn ($v) => (int) trim($v))
+            ->filter(fn ($v) => $v > 0)
+            ->unique()
+            ->take(50)
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return response()->json(['products' => []]);
+        }
+
+        $products = Product::query()
+            ->where('is_active', true)
+            ->whereIn('id', $ids)
+            ->with('category:id,slug,nama')
+            ->get()
+            ->map(fn (Product $p) => $this->card($p))
+            ->values();
+
+        return response()->json(['products' => $products]);
+    }
+
+    /** Fallback aman untuk file disk public (/storage/...) bila symlink belum tersedia di OS lokal. */
+    public function publicFile(string $path)
+    {
+        $clean = ltrim(str_replace('\\', '/', $path), '/');
+
+        if ($clean === '' || str_contains($clean, '..')) {
+            abort(404);
+        }
+
+        $disk = Storage::disk('public');
+        if (! $disk->exists($clean)) {
+            abort(404);
+        }
+
+        return response()->file($disk->path($clean), [
+            'Cache-Control' => 'public, max-age=86400',
         ]);
     }
 
@@ -286,7 +509,7 @@ class ShopController extends Controller
             return $foto;
         }
 
-        return Storage::url($foto);
+        return Storage::disk('public')->url($foto);
     }
 
     /** Bentuk seragam yang dikirim ke React. */
@@ -304,6 +527,8 @@ class ShopController extends Controller
             'stok' => $p->stok,
             'kategori' => $p->category?->slug,
             'kategori_nama' => $p->category?->nama,
+            'is_best_seller' => (bool) $p->is_best_seller,
+            'is_new' => (bool) $p->is_new,
         ];
     }
 }

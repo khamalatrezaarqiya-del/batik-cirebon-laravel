@@ -69,14 +69,14 @@ export default function Motif({ motif = 'mega', base = '#6b3d1f', accent = '#e6b
   const tile = MOTIFS[motif]?.(accent) || MEGA(accent)
 
   return (
-    <svg className={className} viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">
+    <svg className={className} viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">
       <defs>
         <pattern id={id} width="120" height="120" patternUnits="userSpaceOnUse">
           {tile}
         </pattern>
       </defs>
-      <rect width="400" height="300" fill={base} />
-      <rect width="400" height="300" fill={`url(#${id})`} />
+      <rect width="400" height="500" fill={base} />
+      <rect width="400" height="500" fill={`url(#${id})`} />
     </svg>
   )
 }

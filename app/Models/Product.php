@@ -14,12 +14,15 @@ class Product extends Model
     protected $fillable = [
         'category_id', 'nama', 'slug', 'harga', 'motif',
         'c1', 'c2', 'foto', 'deskripsi', 'stok', 'is_active',
+        'is_best_seller', 'is_new',
     ];
 
     protected $casts = [
         'harga' => 'integer',
         'stok' => 'integer',
         'is_active' => 'boolean',
+        'is_best_seller' => 'boolean',
+        'is_new' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -47,6 +50,16 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function orderItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function reviews(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 
     public function getRouteKeyName(): string

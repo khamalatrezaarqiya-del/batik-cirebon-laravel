@@ -1,39 +1,46 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-import DeleteUserForm from './Partials/DeleteUserForm';
-import UpdatePasswordForm from './Partials/UpdatePasswordForm';
-import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import { Link } from '@inertiajs/react'
+import { useEffect, useState } from 'react'
+import ShopLayout from '@/Layouts/ShopLayout.jsx'
+import SectionTitle from '@/Components/SectionTitle.jsx'
+import { makeT, readLang } from '@/Lib/i18n.js'
+import DeleteUserForm from './Partials/DeleteUserForm'
+import UpdatePasswordForm from './Partials/UpdatePasswordForm'
+import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm'
 
 export default function Edit({ mustVerifyEmail, status }) {
-    return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Profile
-                </h2>
-            }
+  const [lang, setLang] = useState(() => readLang())
+  const t = makeT(lang)
+
+  useEffect(() => {
+    const onLang = () => setLang(readLang())
+    window.addEventListener('lang:change', onLang)
+    return () => window.removeEventListener('lang:change', onLang)
+  }, [])
+
+  return (
+    <ShopLayout title={t('profile_title')}>
+      <div className="section">
+        <SectionTitle
+          subtitle="Kelola informasi akun, kata sandi, dan keamanan profil Anda."
+          action={<Link className="text-link" href="/dashboard">← Kembali ke Akun</Link>}
         >
-            <Head title="Profile" />
+          {t('profile_title')}
+        </SectionTitle>
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdateProfileInformationForm
-                            mustVerifyEmail={mustVerifyEmail}
-                            status={status}
-                            className="max-w-xl"
-                        />
-                    </div>
+        <div className="profile-stack">
+          <div className="card-box">
+            <UpdateProfileInformationForm mustVerifyEmail={mustVerifyEmail} status={status} />
+          </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdatePasswordForm className="max-w-xl" />
-                    </div>
+          <div className="card-box">
+            <UpdatePasswordForm />
+          </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <DeleteUserForm className="max-w-xl" />
-                    </div>
-                </div>
-            </div>
-        </AuthenticatedLayout>
-    );
+          <div className="card-box danger-zone">
+            <DeleteUserForm />
+          </div>
+        </div>
+      </div>
+    </ShopLayout>
+  )
 }

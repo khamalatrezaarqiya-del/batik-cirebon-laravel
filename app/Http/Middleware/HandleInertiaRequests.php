@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Category;
+use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -19,11 +21,15 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user()?->only('id', 'name', 'email', 'is_admin'),
+                'user' => $request->user('web')?->only('id', 'name', 'email', 'is_admin'),
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
             ],
+            'navCategories' => fn () => Category::query()
+                ->orderBy('id')
+                ->get(['id', 'slug', 'nama']),
+            'storeWhatsapp' => fn () => SiteSetting::getValue('admin_whatsapp', ''),
         ];
     }
 }

@@ -7,6 +7,8 @@ use App\Filament\Resources\OrderResource\RelationManagers;
 use App\Models\Order;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Actions\Action as NotificationAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -24,6 +26,18 @@ class OrderResource extends Resource
     protected static ?string $pluralModelLabel = 'Pesanan';
 
     protected static ?int $navigationSort = 1;
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = Order::where('status', 'baru')->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
+    public static function getNavigationBadgeColor(): string | array | null
+    {
+        return 'warning';
+    }
 
     public static function form(Form $form): Form
     {
@@ -153,6 +167,13 @@ class OrderResource extends Resource
                     ->label('Masuk')
                     ->dateTime('d M Y H:i')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('reviews_avg_rating')
+                    ->label('Rating')
+                    ->avg('reviews', 'rating')
+                    ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 1) . ' / 5' : '—')
+                    ->badge()
+                    ->color(fn ($state) => $state ? 'warning' : 'gray'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -176,17 +197,74 @@ class OrderResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('confirmOrder')
+                    ->label('Konfirmasi')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('primary')
+                    ->visible(fn (Order $r) => $r->status === 'baru')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Order $r) => "Konfirmasi Pesanan {$r->order_code}?")
+                    ->modalDescription('Status pesanan akan diubah menjadi Diproses. Setelah itu Anda dapat langsung menghubungi pelanggan via WhatsApp.')
+                    ->action(function (Order $record): void {
+                        $record->update(['status' => 'diproses']);
+
+                        Notification::make()
+                            ->title("Pesanan {$record->order_code} dikonfirmasi")
+                            ->body("Status diubah ke Diproses. Klik tombol di bawah untuk mengabari {$record->recipient_name} via WhatsApp.")
+                            ->success()
+                            ->actions([
+                                NotificationAction::make('contactCustomer')
+                                    ->label('Hubungi Pelanggan via WA')
+                                    ->url(self::customerWaUrl($record), shouldOpenInNewTab: true),
+                            ])
+                            ->send();
+                    }),
+
                 Tables\Actions\Action::make('wa')
-                    ->label('WhatsApp')
+                    ->label('Hubungi WA')
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->color('success')
-                    ->url(fn (Order $r) => 'https://wa.me/' . preg_replace('/^0/', '62', $r->phone), shouldOpenInNewTab: true),
+                    ->url(fn (Order $r) => self::customerWaUrl($r), shouldOpenInNewTab: true),
 
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()->label('Lihat'),
+                Tables\Actions\EditAction::make()->label('Edit'),
             ])
             ->defaultSort('created_at', 'desc')
             ->poll('30s');
+    }
+
+    /** Template pesan WhatsApp dari Admin ke Customer sesuai status pesanan. */
+    public static function customerWaUrl(Order $order): string
+    {
+        $order->loadMissing('items.product:id,nama');
+
+        $phone = preg_replace('/\D/', '', (string) $order->phone);
+        if (str_starts_with($phone, '0')) {
+            $phone = '62' . substr($phone, 1);
+        } elseif (! str_starts_with($phone, '62')) {
+            $phone = '62' . $phone;
+        }
+
+        $itemsText = $order->items
+            ->map(fn ($i) => ($i->product?->nama ?? 'Produk') . ($i->size ? " ({$i->size})" : '') . " x{$i->qty}")
+            ->implode(', ');
+
+        $total = 'Rp ' . number_format((int) $order->grand_total, 0, ',', '.');
+        $method = match ($order->payment_method) {
+            'transfer' => 'Transfer Bank',
+            'ewallet' => 'QRIS / E-Wallet',
+            'cod' => 'COD (Bayar di Tempat)',
+            default => $order->payment_method,
+        };
+
+        $text = match ($order->status) {
+            'dikirim' => "Halo Kak {$order->recipient_name}, pesanan Batik Daffa Anda dengan kode *{$order->order_code}* ({$itemsText}) sudah kami kirim ke alamat tujuan. Terima kasih telah berbelanja di Batik Daffa!",
+            'selesai' => "Halo Kak {$order->recipient_name}, terima kasih telah berbelanja di Batik Daffa. Semoga pesanan *{$order->order_code}* berkenan dan nyaman dikenakan.",
+            'batal' => "Halo Kak {$order->recipient_name}, kami menginformasikan bahwa pesanan Batik Daffa *{$order->order_code}* telah dibatalkan. Silakan kabari kami bila ingin memesan kembali.",
+            default => "Halo Kak {$order->recipient_name}, terima kasih telah berbelanja di Batik Daffa.\n\nPesanan Anda dengan kode *{$order->order_code}* sudah kami terima & konfirmasi:\n• Item: {$itemsText}\n• Total: {$total}\n• Metode: {$method}\n• Alamat: {$order->shipping_address}\n\nKami akan segera mengabarkan detail pengiriman dan resi kepada Anda. Terima kasih!",
+        };
+
+        return 'https://wa.me/' . $phone . '?text=' . rawurlencode($text);
     }
 
     public static function getRelations(): array
