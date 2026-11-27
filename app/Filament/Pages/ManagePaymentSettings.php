@@ -20,9 +20,9 @@ class ManagePaymentSettings extends Page implements HasForms
 
     protected static ?string $navigationGroup = 'Penjualan';
 
-    protected static ?string $navigationLabel = 'Rekening & QRIS';
+    protected static ?string $navigationLabel = 'Pembayaran & WA';
 
-    protected static ?string $title = 'Pengaturan Pembayaran (Rekening & QRIS)';
+    protected static ?string $title = 'Pengaturan Pembayaran (Rekening, DP 50%, QRIS & COD)';
 
     protected static ?string $slug = 'pengaturan-pembayaran';
 
@@ -35,14 +35,22 @@ class ManagePaymentSettings extends Page implements HasForms
     public function mount(): void
     {
         $this->form->fill([
+            'pay_transfer_enabled' => SiteSetting::getValue('pay_transfer_enabled', '1') === '1',
+            'pay_dp50_enabled' => SiteSetting::getValue('pay_dp50_enabled', '1') === '1',
+            'pay_qris_enabled' => SiteSetting::getValue('pay_qris_enabled', '0') === '1',
+            'pay_cod_enabled' => SiteSetting::getValue('pay_cod_enabled', '0') === '1',
             'pay_bank_name' => SiteSetting::getValue('pay_bank_name', 'Bank BCA'),
             'pay_bank_account' => SiteSetting::getValue('pay_bank_account', '1340 5829 10'),
-            'pay_bank_holder' => SiteSetting::getValue('pay_bank_holder', 'Batik Daffa Trusmi'),
+            'pay_bank_holder' => SiteSetting::getValue('pay_bank_holder', 'Batik Daffa Cirebon'),
             'pay_bank_note' => SiteSetting::getValue(
                 'pay_bank_note',
-                'Transfer sesuai nominal total pesanan. Admin akan memverifikasi pembayaran dan menghubungi Anda.'
+                'Transfer m-Banking sesuai nominal total pesanan. Admin Batik Daffa akan memverifikasi mutasi dan menghubungi Anda untuk pengiriman.'
             ),
-            'pay_qris_merchant' => SiteSetting::getValue('pay_qris_merchant', 'Batik Daffa · Trusmi Cirebon'),
+            'pay_dp50_note' => SiteSetting::getValue(
+                'pay_dp50_note',
+                'Khusus pesanan bernominal besar, seragam, atau custom. Transfer DP 50% terlebih dahulu dan pelunasan dilakukan sebelum pengiriman.'
+            ),
+            'pay_qris_merchant' => SiteSetting::getValue('pay_qris_merchant', 'Batik Daffa · Plered, Cirebon'),
             'pay_ewallet_info' => SiteSetting::getValue(
                 'pay_ewallet_info',
                 'Scan QRIS melalui GoPay, OVO, DANA, ShopeePay, atau mobile banking.'
@@ -65,8 +73,32 @@ class ManagePaymentSettings extends Page implements HasForms
 
         return $form
             ->schema([
-                Forms\Components\Section::make('Transfer Bank')
-                    ->description('Nomor rekening ini tampil langsung saat pelanggan memilih Transfer Bank di Checkout & Detail Pesanan.')
+                Forms\Components\Section::make('Aktif / Nonaktifkan Metode Pembayaran di Checkout')
+                    ->description('Atur metode pembayaran apa saja yang ditampilkan ke pelanggan. Anda dapat mengaktifkan QRIS sewaktu pameran (misal Inacraft) dan menonaktifkannya untuk operasional harian.')
+                    ->schema([
+                        Forms\Components\Toggle::make('pay_transfer_enabled')
+                            ->label('Transfer Bank (Lunas)')
+                            ->helperText('Metode harian utama melalui m-Banking / transfer BCA.')
+                            ->default(true),
+
+                        Forms\Components\Toggle::make('pay_dp50_enabled')
+                            ->label('DP 50% (Transfer Bank)')
+                            ->helperText('Untuk pesanan nominal besar, seragam, atau custom.')
+                            ->default(true),
+
+                        Forms\Components\Toggle::make('pay_qris_enabled')
+                            ->label('QRIS / E-Wallet')
+                            ->helperText('Aktifkan saat fasilitas QRIS tersedia / pameran.')
+                            ->default(false),
+
+                        Forms\Components\Toggle::make('pay_cod_enabled')
+                            ->label('COD (Bayar di Tempat)')
+                            ->helperText('Aktifkan bila melayani pembayaran tunai di tempat.')
+                            ->default(false),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Transfer Bank & DP 50%')
+                    ->description('Nomor rekening ini tampil langsung saat pelanggan memilih Transfer Bank atau DP 50% di Checkout & Detail Pesanan.')
                     ->schema([
                         Forms\Components\TextInput::make('pay_bank_name')
                             ->label('Nama Bank')
@@ -82,19 +114,24 @@ class ManagePaymentSettings extends Page implements HasForms
 
                         Forms\Components\TextInput::make('pay_bank_holder')
                             ->label('Atas Nama')
-                            ->placeholder('Contoh: Batik Daffa Trusmi')
+                            ->placeholder('Contoh: Batik Daffa Cirebon')
                             ->required()
                             ->maxLength(120)
                             ->columnSpanFull(),
 
                         Forms\Components\Textarea::make('pay_bank_note')
-                            ->label('Instruksi Transfer')
+                            ->label('Instruksi Transfer Lunas')
+                            ->rows(2)
+                            ->columnSpanFull(),
+
+                        Forms\Components\Textarea::make('pay_dp50_note')
+                            ->label('Instruksi DP 50%')
                             ->rows(2)
                             ->columnSpanFull(),
                     ])->columns(2),
 
                 Forms\Components\Section::make('QRIS / E-Wallet')
-                    ->description('Gambar QRIS ini tampil langsung saat pelanggan memilih E-Wallet / QRIS.')
+                    ->description('Gambar QRIS ini tampil otomatis saat opsi QRIS diaktifkan di atas.')
                     ->schema([
                         Forms\Components\Grid::make(['default' => 1, 'lg' => 2])->schema([
                             Forms\Components\Group::make()->schema([
@@ -139,8 +176,8 @@ class ManagePaymentSettings extends Page implements HasForms
                             ->required(),
                     ]),
 
-                Forms\Components\Section::make('WhatsApp Admin (Pesanan Custom & Bantuan)')
-                    ->description('Nomor tujuan saat pelanggan menekan tombol Pesan Custom atau Bantuan via WhatsApp.')
+                Forms\Components\Section::make('WhatsApp Admin (Custom, Grosir B2B & Bantuan)')
+                    ->description('Nomor tujuan saat pelanggan menekan tombol Pesan Custom, Konsultasi Grosir B2B, atau Bantuan via WhatsApp.')
                     ->schema([
                         Forms\Components\TextInput::make('admin_whatsapp')
                             ->label('Nomor WhatsApp Admin')
@@ -157,10 +194,26 @@ class ManagePaymentSettings extends Page implements HasForms
     {
         $state = $this->form->getState();
 
+        $transferOn = (bool) ($state['pay_transfer_enabled'] ?? true);
+        $dp50On = (bool) ($state['pay_dp50_enabled'] ?? false);
+        $qrisOn = (bool) ($state['pay_qris_enabled'] ?? false);
+        $codOn = (bool) ($state['pay_cod_enabled'] ?? false);
+
+        // Pastikan minimal 1 metode pembayaran tetap aktif
+        if (! $transferOn && ! $dp50On && ! $qrisOn && ! $codOn) {
+            $transferOn = true;
+        }
+
+        SiteSetting::setValue('pay_transfer_enabled', $transferOn ? '1' : '0');
+        SiteSetting::setValue('pay_dp50_enabled', $dp50On ? '1' : '0');
+        SiteSetting::setValue('pay_qris_enabled', $qrisOn ? '1' : '0');
+        SiteSetting::setValue('pay_cod_enabled', $codOn ? '1' : '0');
+
         SiteSetting::setValue('pay_bank_name', trim($state['pay_bank_name']));
         SiteSetting::setValue('pay_bank_account', trim($state['pay_bank_account']));
         SiteSetting::setValue('pay_bank_holder', trim($state['pay_bank_holder']));
         SiteSetting::setValue('pay_bank_note', trim($state['pay_bank_note'] ?? ''));
+        SiteSetting::setValue('pay_dp50_note', trim($state['pay_dp50_note'] ?? ''));
         SiteSetting::setValue('pay_qris_merchant', trim($state['pay_qris_merchant']));
         SiteSetting::setValue('pay_ewallet_info', trim($state['pay_ewallet_info']));
         SiteSetting::setValue('pay_cod_note', trim($state['pay_cod_note']));
@@ -174,7 +227,7 @@ class ManagePaymentSettings extends Page implements HasForms
 
         Notification::make()
             ->title('Pengaturan pembayaran tersimpan')
-            ->body('Nomor rekening & QRIS langsung tersinkron ke halaman Checkout dan Detail Pesanan.')
+            ->body('Status ON/OFF metode pembayaran, rekening & QRIS langsung tersinkron ke Checkout web.')
             ->success()
             ->send();
     }

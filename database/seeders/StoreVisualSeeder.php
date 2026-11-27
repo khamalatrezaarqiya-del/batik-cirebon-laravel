@@ -15,7 +15,7 @@ class StoreVisualSeeder extends Seeder
             HeroSlide::insert([
                 [
                     'title' => 'Warisan Mega Mendung',
-                    'description' => 'Kain batik tulis dan cap pilihan karya pengrajin Trusmi, Cirebon.',
+                    'description' => 'Kain batik tulis, cap, dan kombinasi pesisiran Cirebon karya pengrajin Panembahan, Plered sejak 2000-an.',
                     'cta_label' => 'Jelajahi Koleksi Kain',
                     'cta_url' => '/katalog?cat=kain',
                     'image' => '/images/campaigns/hero-1.jpg',
@@ -27,7 +27,7 @@ class StoreVisualSeeder extends Seeder
                 ],
                 [
                     'title' => 'Busana Batik Kontemporer',
-                    'description' => 'Potongan rapi dan sejuk untuk keseharian maupun acara formal.',
+                    'description' => 'Pilihan kemeja pria, blouse, dan dress berbahan Viscose, Doby, Katun, hingga ATBM eksklusif.',
                     'cta_label' => 'Lihat Koleksi Pakaian',
                     'cta_url' => '/katalog?cat=pakaian',
                     'image' => '/images/campaigns/hero-2.jpg',
@@ -39,7 +39,7 @@ class StoreVisualSeeder extends Seeder
                 ],
                 [
                     'title' => 'Ketelitian di Setiap Canting',
-                    'description' => 'Pewarnaan sogan klasik di atas katun primis dengan karakter motif yang otentik.',
+                    'description' => 'Dikerjakan langsung oleh tim pengrajin lokal Batik Daffa di Panembahan, Cirebon untuk ritel hingga grosir.',
                     'cta_label' => 'Belanja Sekarang',
                     'cta_url' => '/katalog',
                     'image' => '/images/campaigns/hero-3.jpg',
@@ -54,17 +54,22 @@ class StoreVisualSeeder extends Seeder
 
         $defaults = [
             'featured_label' => 'Koleksi Pilihan',
-            'featured_title' => 'Harmoni Sogan & Mega Mendung',
-            'featured_description' => 'Perpaduan motif pesisir Cirebon dan nuansa sogan hangat dalam kain lembaran, kemeja, serta selendang untuk beragam momen.',
+            'featured_title' => 'Harmoni Mega Mendung & Singaan',
+            'featured_description' => 'Perpaduan corak pesisiran khas Cirebon pada bahan Viscose, Doby, Katun, dan ATBM untuk keseharian, seragam, hingga koleksi istimewa.',
             'featured_cta_label' => 'Lihat Koleksi Mega Mendung',
             'featured_cta_url' => '/katalog?motif=mega',
             'featured_image' => '/images/campaigns/featured-collection.jpg',
+            'pay_transfer_enabled' => '1',
+            'pay_dp50_enabled' => '1',
+            'pay_qris_enabled' => '0',
+            'pay_cod_enabled' => '0',
             'pay_bank_name' => 'Bank BCA',
             'pay_bank_account' => '1340 5829 10',
-            'pay_bank_holder' => 'Batik Daffa Trusmi',
-            'pay_bank_note' => 'Transfer sesuai nominal total pesanan. Admin akan memverifikasi pembayaran dan menghubungi Anda.',
+            'pay_bank_holder' => 'Batik Daffa Cirebon',
+            'pay_bank_note' => 'Transfer m-Banking sesuai nominal total pesanan. Admin Batik Daffa akan memverifikasi mutasi dan menghubungi Anda untuk pengiriman.',
+            'pay_dp50_note' => 'Khusus pesanan bernominal besar, seragam, atau custom. Transfer DP 50% terlebih dahulu dan pelunasan dilakukan sebelum pengiriman.',
             'pay_qris_image' => '/images/qris-default.svg',
-            'pay_qris_merchant' => 'Batik Daffa · Trusmi Cirebon',
+            'pay_qris_merchant' => 'Batik Daffa · Plered, Cirebon',
             'pay_ewallet_info' => 'Scan QRIS melalui GoPay, OVO, DANA, ShopeePay, atau mobile banking.',
             'pay_cod_note' => 'Bayar tunai langsung ke kurir saat paket tiba. Admin akan menghubungi Anda terlebih dahulu sebelum paket dikirim.',
         ];

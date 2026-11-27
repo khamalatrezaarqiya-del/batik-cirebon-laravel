@@ -119,8 +119,9 @@ class OrderResource extends Resource
                 Forms\Components\Select::make('payment_method')
                     ->label('Metode bayar')
                     ->options([
-                        'transfer' => 'Transfer Bank',
-                        'ewallet' => 'E-Wallet',
+                        'transfer' => 'Transfer Bank (Lunas)',
+                        'dp50' => 'DP 50% (Transfer Bank)',
+                        'ewallet' => 'QRIS / E-Wallet',
                         'cod' => 'COD',
                     ])
                     ->required(),
@@ -196,7 +197,8 @@ class OrderResource extends Resource
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
                         'transfer' => 'Transfer',
-                        'ewallet' => 'E-Wallet',
+                        'dp50' => 'DP 50%',
+                        'ewallet' => 'QRIS',
                         'cod' => 'COD',
                         default => $state,
                     }),
@@ -246,6 +248,50 @@ class OrderResource extends Resource
                         return $query
                             ->when($data['dari'], fn ($q, $d) => $q->whereDate('created_at', '>=', $d))
                             ->when($data['sampai'], fn ($q, $d) => $q->whereDate('created_at', '<=', $d));
+                    }),
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('exportOrdersCsv')
+                    ->label('Export Rekap (Excel/CSV)')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->action(function () {
+                        $filename = 'rekap-pesanan-batik-daffa-' . now()->format('Y-m-d') . '.csv';
+
+                        return response()->streamDownload(function () {
+                            $out = fopen('php://output', 'w');
+                            fwrite($out, "\xEF\xBB\xBF");
+                            fputcsv($out, ['Kode Pesanan', 'Tanggal', 'Penerima', 'No HP', 'Alamat', 'Item', 'Metode Bayar', 'Status Bayar', 'Status Pesanan', 'Subtotal (Rp)', 'Ongkir (Rp)', 'Total (Rp)', 'Catatan']);
+
+                            Order::with('items.product:id,nama')->latest('created_at')->chunk(100, function ($rows) use ($out) {
+                                foreach ($rows as $o) {
+                                    $items = $o->items->map(fn ($i) => ($i->product?->nama ?? 'Produk') . ($i->size ? " ({$i->size})" : '') . " x{$i->qty}")->implode('; ');
+                                    fputcsv($out, [
+                                        $o->order_code,
+                                        $o->created_at?->format('Y-m-d H:i'),
+                                        $o->recipient_name,
+                                        $o->phone,
+                                        $o->shipping_address,
+                                        $items,
+                                        match ($o->payment_method) {
+                                            'transfer' => 'Transfer Bank',
+                                            'dp50' => 'DP 50% (Transfer)',
+                                            'ewallet' => 'QRIS / E-Wallet',
+                                            'cod' => 'COD',
+                                            default => $o->payment_method,
+                                        },
+                                        self::PAYMENT_LABELS[$o->payment_status ?: 'pending'] ?? $o->payment_status,
+                                        self::STATUS_LABELS[$o->status] ?? $o->status,
+                                        $o->subtotal,
+                                        $o->shipping_cost,
+                                        $o->grand_total,
+                                        $o->note ?? '',
+                                    ]);
+                                }
+                            });
+
+                            fclose($out);
+                        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
                     }),
             ])
             ->actions([
@@ -299,6 +345,12 @@ class OrderResource extends Resource
                     ->color('success')
                     ->url(fn (Order $r) => self::customerWaUrl($r), shouldOpenInNewTab: true),
 
+                Tables\Actions\Action::make('printNota')
+                    ->label('Nota')
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn (Order $r) => route('admin.orders.nota', $r), shouldOpenInNewTab: true),
+
                 Tables\Actions\ViewAction::make()->label('Lihat'),
                 Tables\Actions\EditAction::make()->label('Edit'),
             ])
@@ -324,7 +376,8 @@ class OrderResource extends Resource
 
         $total = 'Rp '.number_format((int) $order->grand_total, 0, ',', '.');
         $method = match ($order->payment_method) {
-            'transfer' => 'Transfer Bank',
+            'transfer' => 'Transfer Bank (Lunas)',
+            'dp50' => 'DP 50% (Transfer Bank)',
             'ewallet' => 'QRIS / E-Wallet',
             'cod' => 'COD (Bayar di Tempat)',
             default => $order->payment_method,

@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { usePage } from '@inertiajs/react'
 import { waLink } from '../Lib/whatsapp.js'
 
 const IconClose = () => (
@@ -7,15 +8,31 @@ const IconClose = () => (
   </svg>
 )
 
-const SIZE_ROWS = [
-  ['S', '98 – 102 cm', '70 cm', '44 cm'],
-  ['M', '104 – 108 cm', '72 cm', '46 cm'],
-  ['L', '110 – 114 cm', '74 cm', '48 cm'],
-  ['XL', '116 – 120 cm', '76 cm', '50 cm'],
+const SIZE_ROWS_PRIA = [
+  ['S', '100 – 104 cm', '70 cm', '44 cm'],
+  ['M', '106 – 110 cm', '72 cm', '46 cm'],
+  ['L', '112 – 116 cm', '74 cm', '48 cm'],
+  ['XL', '118 – 122 cm', '76 cm', '50 cm'],
+  ['XXL', '124 – 128 cm', '78 cm', '52 cm'],
 ]
 
-export default function SizeGuideModal({ open, onClose, productName = '' }) {
+const SIZE_ROWS_WANITA = [
+  ['S', '90 – 94 cm', '65 cm', '38 cm'],
+  ['M', '96 – 100 cm', '67 cm', '40 cm'],
+  ['L', '102 – 106 cm', '69 cm', '42 cm'],
+  ['XL', '108 – 112 cm', '71 cm', '44 cm'],
+  ['XXL', '114 – 118 cm', '73 cm', '46 cm'],
+]
+
+export default function SizeGuideModal({ open, onClose, productName = '', defaultTab = 'pria' }) {
+  const { props } = usePage()
+  const storeWhatsapp = props?.storeWhatsapp || ''
+  const [tab, setTab] = useState(defaultTab)
   const closeRef = useRef(null)
+
+  useEffect(() => {
+    setTab(defaultTab)
+  }, [defaultTab, open])
 
   useEffect(() => {
     if (!open) return
@@ -35,6 +52,8 @@ export default function SizeGuideModal({ open, onClose, productName = '' }) {
 
   if (!open) return null
 
+  const rows = tab === 'wanita' ? SIZE_ROWS_WANITA : SIZE_ROWS_PRIA
+
   return (
     <div className="modal-backdrop" onClick={onClose} role="presentation">
       <div
@@ -46,11 +65,32 @@ export default function SizeGuideModal({ open, onClose, productName = '' }) {
       >
         <div className="modal-head">
           <div>
-            <h2 id="size-modal-title">Panduan Ukuran Busana</h2>
+            <h2 id="size-modal-title">Panduan Ukuran Pria &amp; Wanita</h2>
             <p className="muted-text">Standar potongan reguler Batik Daffa (toleransi jahit 1–2 cm).</p>
           </div>
           <button ref={closeRef} type="button" className="drawer-close" onClick={onClose} aria-label="Tutup panduan ukuran">
             <IconClose />
+          </button>
+        </div>
+
+        <div className="size-tabs" role="tablist" aria-label="Pilih panduan ukuran">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'pria'}
+            className={`size-tab${tab === 'pria' ? ' active' : ''}`}
+            onClick={() => setTab('pria')}
+          >
+            Busana Pria (Kemeja)
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'wanita'}
+            className={`size-tab${tab === 'wanita' ? ' active' : ''}`}
+            onClick={() => setTab('wanita')}
+          >
+            Busana Wanita (Blouse / Dress)
           </button>
         </div>
 
@@ -65,7 +105,7 @@ export default function SizeGuideModal({ open, onClose, productName = '' }) {
               </tr>
             </thead>
             <tbody>
-              {SIZE_ROWS.map(([sz, chest, len, sh]) => (
+              {rows.map(([sz, chest, len, sh]) => (
                 <tr key={sz}>
                   <td><strong>{sz}</strong></td>
                   <td>{chest}</td>
@@ -78,10 +118,10 @@ export default function SizeGuideModal({ open, onClose, productName = '' }) {
         </div>
 
         <div className="modal-foot">
-          <p className="muted-text">Ragu menentukan ukuran? Kirim lingkar dada &amp; tinggi badan ke tim kami.</p>
+          <p className="muted-text">Tersedia garansi penukaran ukuran atau jahit ukuran custom via WhatsApp.</p>
           <a
             className="button ghost"
-            href={waLink(`Halo Batik Daffa, saya ingin konsultasi ukuran untuk ${productName || 'busana batik'}.`)}
+            href={waLink(`Halo Batik Daffa, saya ingin konsultasi ukuran (${tab}) untuk ${productName || 'busana batik'}.`, storeWhatsapp)}
             target="_blank"
             rel="noreferrer"
           >

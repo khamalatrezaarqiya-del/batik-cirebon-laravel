@@ -9,6 +9,7 @@ import CartDrawer from '../Components/CartDrawer.jsx'
 const TITLES = {
   '': 'nav_home',
   katalog: 'nav_catalog',
+  tentang: 'nav_about',
   keranjang: 'nav_cart',
   checkout: 'checkout_title',
   pesanan: 'orders_title',
@@ -16,6 +17,10 @@ const TITLES = {
   dashboard: 'account',
   profile: 'profile_title',
 }
+
+const MAPS_URL =
+  'https://www.google.com/maps/search/?api=1&query=Jl.+Raya+Panembahan+No.+52%2F468+Panembahan+Plered+Cirebon+45154'
+const IG_URL = 'https://www.instagram.com/daffabatikcirebon/'
 
 const IconCart = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -222,6 +227,7 @@ export default function ShopLayout({ children, title, overlayHeader = false }) {
                 {lang === 'en' && ['kain', 'pakaian', 'aksesoris'].includes(cat.slug) ? t(cat.slug) : cat.nama}
               </Link>
             ))}
+            <Link href="/tentang" className={path === '/tentang' ? 'active' : ''}>{t('nav_about')}</Link>
             <Link href="/pesanan" className={path.startsWith('/pesanan') ? 'active' : ''}>{t('nav_orders')}</Link>
           </nav>
 
@@ -322,9 +328,11 @@ export default function ShopLayout({ children, title, overlayHeader = false }) {
             <div className="footer-group">
               <h3>{t('footer_help')}</h3>
               <ul>
+                <li><Link href="/tentang">{lang === 'en' ? 'About & Wholesale (B2B)' : 'Profil Usaha & Grosir B2B'}</Link></li>
                 <li><Link href="/bantuan/cara-belanja">{t('help_how')}</Link></li>
                 <li><Link href="/bantuan/ukuran">{t('help_size')}</Link></li>
                 <li><Link href="/bantuan/pengiriman">{t('help_pay')}</Link></li>
+                <li><Link href="/bantuan/garansi">{t('help_garansi')}</Link></li>
                 <li><Link href="/pesanan">{t('track_title')}</Link></li>
               </ul>
             </div>
@@ -333,9 +341,8 @@ export default function ShopLayout({ children, title, overlayHeader = false }) {
               <h3>{t('footer_contact')}</h3>
               <ul>
                 <li><a href={waLink('', storeWhatsapp)} target="_blank" rel="noreferrer">WhatsApp</a></li>
-                <li><a href="mailto:halo@batikdaffa.com">halo@batikdaffa.com</a></li>
-                <li><a href="https://instagram.com/xxxx" target="_blank" rel="noreferrer">Instagram</a></li>
-                <li><a href="https://facebook.com/xxxx" target="_blank" rel="noreferrer">Facebook</a></li>
+                <li><a href={IG_URL} target="_blank" rel="noreferrer">Instagram (@daffabatikcirebon)</a></li>
+                <li><a href={MAPS_URL} target="_blank" rel="noreferrer">Google Maps Workshop</a></li>
               </ul>
             </div>
           </div>
@@ -344,7 +351,7 @@ export default function ShopLayout({ children, title, overlayHeader = false }) {
         <div className="footer-bar">
           <div className="container footer-bar-inner">
             <span>© 2026 Batik Daffa. {t('rights')}</span>
-            <span>Batik Tulis &amp; Cap · Trusmi, Cirebon</span>
+            <span>Panembahan, Kec. Plered, Kab. Cirebon · Sejak 2000-an</span>
           </div>
         </div>
       </footer>

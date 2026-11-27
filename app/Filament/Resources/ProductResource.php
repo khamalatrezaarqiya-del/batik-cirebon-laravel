@@ -90,17 +90,30 @@ class ProductResource extends Resource
 
                             Forms\Components\Select::make('motif')
                                 ->label('Motif Batik')
-                                ->options([
-                                    'mega' => 'Mega Mendung',
-                                    'kawung' => 'Kawung',
-                                    'parang' => 'Parang',
-                                    'truntum' => 'Truntum',
-                                    'wadasan' => 'Wadasan',
-                                    'lainnya' => 'Lainnya',
-                                ])
+                                ->options(Product::MOTIF_OPTIONS)
                                 ->default('mega')
                                 ->native(false)
                                 ->required(),
+
+                            Forms\Components\Select::make('bahan')
+                                ->label('Jenis Bahan')
+                                ->options(Product::BAHAN_OPTIONS)
+                                ->default('katun')
+                                ->native(false)
+                                ->required(),
+
+                            Forms\Components\Select::make('teknik')
+                                ->label('Teknik Produksi')
+                                ->options(Product::TEKNIK_OPTIONS)
+                                ->default('kombinasi')
+                                ->native(false)
+                                ->required(),
+
+                            Forms\Components\Select::make('gender')
+                                ->label('Model / Ukuran')
+                                ->options(Product::GENDER_OPTIONS)
+                                ->default('unisex')
+                                ->native(false),
 
                             Forms\Components\Textarea::make('deskripsi')
                                 ->label('Deskripsi Produk')
@@ -206,14 +219,11 @@ class ProductResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->limit(42)
-                    ->description(fn (Product $record) => match ($record->motif) {
-                        'mega' => 'Mega Mendung',
-                        'kawung' => 'Kawung',
-                        'parang' => 'Parang',
-                        'truntum' => 'Truntum',
-                        'wadasan' => 'Wadasan',
-                        default => 'Klasik',
-                    }),
+                    ->description(fn (Product $record) => collect([
+                        Product::MOTIF_OPTIONS[$record->motif] ?? ucfirst((string) $record->motif),
+                        Product::BAHAN_OPTIONS[$record->bahan] ?? null,
+                        Product::TEKNIK_OPTIONS[$record->teknik] ?? null,
+                    ])->filter()->implode(' · ')),
 
                 Tables\Columns\TextColumn::make('category.nama')
                     ->label('Kategori Katalog')
@@ -277,14 +287,19 @@ class ProductResource extends Resource
 
                 Tables\Filters\SelectFilter::make('motif')
                     ->label('Motif Batik')
-                    ->options([
-                        'mega' => 'Mega Mendung',
-                        'kawung' => 'Kawung',
-                        'parang' => 'Parang',
-                        'truntum' => 'Truntum',
-                        'wadasan' => 'Wadasan',
-                        'lainnya' => 'Lainnya',
-                    ]),
+                    ->options(Product::MOTIF_OPTIONS),
+
+                Tables\Filters\SelectFilter::make('bahan')
+                    ->label('Jenis Bahan')
+                    ->options(Product::BAHAN_OPTIONS),
+
+                Tables\Filters\SelectFilter::make('teknik')
+                    ->label('Teknik Produksi')
+                    ->options(Product::TEKNIK_OPTIONS),
+
+                Tables\Filters\SelectFilter::make('gender')
+                    ->label('Model / Ukuran')
+                    ->options(Product::GENDER_OPTIONS),
 
                 Tables\Filters\TernaryFilter::make('is_best_seller')
                     ->label('Best Seller'),
@@ -294,6 +309,42 @@ class ProductResource extends Resource
 
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Status Tayang Web'),
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('exportStockCsv')
+                    ->label('Export Stok (Excel/CSV)')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->action(function () {
+                        $filename = 'stok-produk-batik-daffa-' . now()->format('Y-m-d') . '.csv';
+
+                        return response()->streamDownload(function () {
+                            $out = fopen('php://output', 'w');
+                            fwrite($out, "\xEF\xBB\xBF");
+                            fputcsv($out, ['ID', 'Nama Produk', 'Kategori', 'Motif', 'Bahan', 'Teknik', 'Model', 'Harga (Rp)', 'Stok', 'Best Seller', 'Baru', 'Status Web']);
+
+                            Product::with('category')->orderBy('id')->chunk(100, function ($rows) use ($out) {
+                                foreach ($rows as $p) {
+                                    fputcsv($out, [
+                                        $p->id,
+                                        $p->nama,
+                                        $p->category?->nama ?? '',
+                                        Product::MOTIF_OPTIONS[$p->motif] ?? $p->motif,
+                                        Product::BAHAN_OPTIONS[$p->bahan] ?? ($p->bahan ?? ''),
+                                        Product::TEKNIK_OPTIONS[$p->teknik] ?? ($p->teknik ?? ''),
+                                        Product::GENDER_OPTIONS[$p->gender] ?? ($p->gender ?? ''),
+                                        $p->harga,
+                                        $p->stok,
+                                        $p->is_best_seller ? 'Ya' : 'Tidak',
+                                        $p->is_new ? 'Ya' : 'Tidak',
+                                        $p->is_active ? 'Aktif' : 'Nonaktif',
+                                    ]);
+                                }
+                            });
+
+                            fclose($out);
+                        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+                    }),
             ])
             ->actions([
                 Tables\Actions\Action::make('quickPrice')

@@ -40,6 +40,9 @@ class QuickAddProductWidget extends Widget implements HasForms
             'nama' => '',
             'category_id' => $defaultCategoryId,
             'motif' => 'mega',
+            'bahan' => 'katun',
+            'teknik' => 'kombinasi',
+            'gender' => 'unisex',
             'harga' => null,
             'stok' => 10,
             'deskripsi' => '',
@@ -107,16 +110,29 @@ class QuickAddProductWidget extends Widget implements HasForms
 
                     Forms\Components\Select::make('motif')
                         ->label('Motif Batik')
-                        ->options([
-                            'mega' => 'Mega Mendung',
-                            'kawung' => 'Kawung',
-                            'parang' => 'Parang',
-                            'truntum' => 'Truntum',
-                            'wadasan' => 'Wadasan',
-                            'lainnya' => 'Lainnya',
-                        ])
+                        ->options(Product::MOTIF_OPTIONS)
                         ->native(false)
                         ->required(),
+
+                    Forms\Components\Select::make('bahan')
+                        ->label('Jenis Bahan')
+                        ->options(Product::BAHAN_OPTIONS)
+                        ->default('katun')
+                        ->native(false)
+                        ->required(),
+
+                    Forms\Components\Select::make('teknik')
+                        ->label('Teknik Produksi')
+                        ->options(Product::TEKNIK_OPTIONS)
+                        ->default('kombinasi')
+                        ->native(false)
+                        ->required(),
+
+                    Forms\Components\Select::make('gender')
+                        ->label('Model / Ukuran')
+                        ->options(Product::GENDER_OPTIONS)
+                        ->default('unisex')
+                        ->native(false),
 
                     Forms\Components\TextInput::make('stok')
                         ->label('Stok Tersedia')
@@ -168,8 +184,8 @@ class QuickAddProductWidget extends Widget implements HasForms
         $state = $this->form->getState();
 
         $palette = match ($state['motif'] ?? 'mega') {
+            'singaan' => ['#5a3418', '#e8c48a'],
             'kawung' => ['#6d4520', '#e5c191'],
-            'parang' => ['#4a2f18', '#d8a86a'],
             'truntum' => ['#5c2b1c', '#dfa869'],
             'wadasan' => ['#3d4a3a', '#bcd0a8'],
             default => ['#6b3d1f', '#e6b871'],
@@ -181,6 +197,9 @@ class QuickAddProductWidget extends Widget implements HasForms
             'slug' => Product::uniqueSlug($state['nama']),
             'harga' => (int) preg_replace('/\D/', '', (string) ($state['harga'] ?? 0)),
             'motif' => $state['motif'],
+            'bahan' => $state['bahan'] ?? 'katun',
+            'teknik' => $state['teknik'] ?? 'kombinasi',
+            'gender' => $state['gender'] ?? 'unisex',
             'stok' => (int) $state['stok'],
             'deskripsi' => filled($state['deskripsi'] ?? null) ? trim($state['deskripsi']) : null,
             'foto' => $state['foto'] ?: null,

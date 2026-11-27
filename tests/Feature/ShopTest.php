@@ -298,4 +298,58 @@ class ShopTest extends TestCase
         $this->assertEquals(3, \App\Models\HeroSlide::count());
         $this->assertEquals(3, Category::count());
     }
+
+    public function test_company_profile_warranty_batik_filters_dp50_toggles_and_admin_nota(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->get('/tentang')->assertStatus(200)->assertSee('Shop\/About', false);
+        $this->get('/bantuan/garansi')->assertStatus(200)->assertSee('garansi');
+
+        $atbm = $this->seedSampleProduct([
+            'nama' => 'Kain ATBM Singaan Eksklusif',
+            'slug' => 'kain-atbm-singaan-eksklusif',
+            'harga' => 3500000,
+            'motif' => 'singaan',
+            'bahan' => 'atbm',
+            'teknik' => 'tulis',
+            'gender' => 'pria',
+            'stok' => 3,
+        ]);
+
+        $this->get('/katalog?motif=singaan&bahan=atbm&teknik=tulis&gender=pria&price=above-2000')
+            ->assertStatus(200)
+            ->assertSee($atbm->nama);
+
+        // Toggle QRIS ON dan COD OFF dari pengaturan admin langsung tercermin di Checkout
+        \App\Models\SiteSetting::setValue('pay_qris_enabled', '1');
+        \App\Models\SiteSetting::setValue('pay_cod_enabled', '0');
+
+        $this->get('/checkout')
+            ->assertStatus(200)
+            ->assertSee('&quot;ewallet&quot;:true', false)
+            ->assertSee('&quot;cod&quot;:false', false);
+
+        // Checkout dengan metode DP 50% & ukuran XXL berhasil
+        $this->post('/checkout', [
+            'recipient_name' => 'Hendra',
+            'phone' => '081234567890',
+            'shipping_address' => 'Jl. Raya Panembahan, Cirebon',
+            'payment_method' => 'dp50',
+            'items' => [
+                ['product_id' => $atbm->id, 'size' => 'XXL', 'qty' => 1],
+            ],
+        ])->assertRedirect();
+
+        $order = Order::latest('id')->firstOrFail();
+        $this->assertEquals('dp50', $order->payment_method);
+
+        // Cetak nota hanya bisa diakses oleh admin
+        $this->get("/admin-nota/{$order->id}")->assertRedirect();
+        $this->actingAs($admin, 'admin')
+            ->get("/admin-nota/{$order->id}")
+            ->assertStatus(200)
+            ->assertSee($order->order_code)
+            ->assertSee('Nominal DP 50%');
+    }
 }

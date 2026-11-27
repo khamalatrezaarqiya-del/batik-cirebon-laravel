@@ -192,20 +192,20 @@ export default function Home({ featured = [], newest = [], categories = [], hero
         </div>
       </section>
 
-      {/* Section 6 — Highlighted Custom Batik Order (Clean Human Copy, Zero Symbols, Positioned After New Arrivals) */}
+      {/* Section 6 — Highlighted Custom & Grosir B2B Order (Clean Human Copy, Zero Symbols, Positioned After New Arrivals) */}
       <section className="section">
         <div className="custom-highlight reveal">
           <div className="custom-highlight-copy">
             <span className="custom-highlight-kicker">
-              {lang === 'en' ? 'Custom Order Service' : 'Layanan Pesanan Custom'}
+              {lang === 'en' ? 'Custom & Wholesale Service' : 'Layanan Custom & Grosir B2B'}
             </span>
             <h2>
-              {lang === 'en' ? 'Looking for Custom Batik?' : 'Ingin Pesan Batik Custom?'}
+              {lang === 'en' ? 'Looking for Custom Batik or Wholesale?' : 'Ingin Pesan Batik Custom atau Grosir?'}
             </h2>
             <p>
               {lang === 'en'
-                ? 'Discuss custom motifs, color preferences, personal measurements, or matching uniforms for families and organizations directly with our admin team.'
-                : 'Diskusikan langsung pilihan motif, warna, ukuran pribadi, hingga kebutuhan seragam keluarga maupun instansi bersama tim Batik Daffa.'}
+                ? 'Discuss custom motifs, fabrics (Viscose, Doby, ATBM, Cotton), personal measurements, family uniforms, or reseller and consignment partnerships directly with Batik Daffa.'
+                : 'Diskusikan pilihan motif pesisiran, jenis bahan (Viscose, Doby, ATBM, Katun), ukuran pribadi, seragam instansi, hingga kerja sama grosir dan konsinyasi langsung bersama tim Batik Daffa.'}
             </p>
           </div>
 
@@ -213,14 +213,17 @@ export default function Home({ featured = [], newest = [], categories = [], hero
             <a
               className="button button-lg custom-wa-btn"
               href={waLink(
-                'Halo Admin Batik Daffa, saya ingin bertanya dan memesan batik custom (motif, warna, ukuran, atau seragam). Bisa dibantu informasinya?',
+                'Halo Admin Batik Daffa, saya ingin bertanya mengenai pesanan batik custom, seragam, atau penawaran grosir. Bisa dibantu informasinya?',
                 storeWhatsapp
               )}
               target="_blank"
               rel="noreferrer"
             >
-              {lang === 'en' ? 'Ask & Order Custom via WhatsApp' : 'Tanya & Pesan Custom via WhatsApp'}
+              {lang === 'en' ? 'Ask & Order via WhatsApp' : 'Tanya & Pesan via WhatsApp'}
             </a>
+            <Link className="button ghost button-lg custom-profile-btn" href="/tentang#grosir">
+              {lang === 'en' ? 'About & B2B Info' : 'Profil & Info Grosir'}
+            </Link>
           </div>
         </div>
       </section>

@@ -8,6 +8,7 @@ export const I18N = {
     // navigasi
     nav_home: 'Beranda',
     nav_catalog: 'Katalog',
+    nav_about: 'Tentang',
     nav_cart: 'Keranjang',
     nav_orders: 'Pesanan',
     nav_help: 'Bantuan',
@@ -49,9 +50,18 @@ export const I18N = {
     sort_cheap: 'Harga: Rendah ke Tinggi',
     sort_pricey: 'Harga: Tinggi ke Rendah',
     filter_title: 'Filter',
+    filter_bahan: 'Jenis Bahan',
+    bahan_all: 'Semua bahan',
+    filter_teknik: 'Teknik Produksi',
+    teknik_all: 'Semua teknik',
+    filter_gender: 'Model / Ukuran',
+    gender_all: 'Semua model',
     filter_price: 'Rentang Harga',
     price_all: 'Semua harga',
     price_under_200: 'Di bawah Rp 200.000',
+    price_200_500: 'Rp 200.000 – Rp 500.000',
+    price_500_2000: 'Rp 500.000 – Rp 2.000.000',
+    price_above_2000: 'Di atas Rp 2.000.000',
     price_200_350: 'Rp 200.000 – Rp 350.000',
     price_above_350: 'Di atas Rp 350.000',
     filter_stock: 'Ketersediaan',
@@ -70,8 +80,8 @@ export const I18N = {
     back_to_catalog: 'Kembali ke Katalog',
     qty: 'Jumlah',
     product_desc:
-      'Dibuat oleh pengrajin Batik Daffa di Trusmi dengan teknik canting dan cap tradisional. Setiap helai kain memiliki karakter motif yang otentik.',
-    detail_made: 'Karya pengrajin Batik Daffa, Trusmi Cirebon',
+      'Dibuat oleh pengrajin Batik Daffa di Panembahan, Plered, Cirebon dengan teknik batik tulis, cap, dan kombinasi canting tembaga. Setiap helai memiliki karakter motif pesisiran yang otentik.',
+    detail_made: 'Workshop Batik Daffa, Panembahan, Plered, Cirebon',
     detail_care: 'Perawatan: cuci tangan lembut, hindari jemur langsung di bawah matahari.',
 
     // kepercayaan
@@ -159,7 +169,8 @@ export const I18N = {
     recipient_name: 'Nama Penerima',
     recipient_phone: 'Nomor WhatsApp / HP',
     payment_method: 'Metode Pembayaran',
-    pay_transfer: 'Transfer Bank',
+    pay_transfer: 'Transfer Bank (Lunas)',
+    pay_dp50: 'DP 50% (Transfer Bank)',
     pay_ewallet: 'QRIS / E-Wallet',
     pay_cod: 'COD (Bayar di Tempat)',
     err_recipient: 'Nama penerima wajib diisi.',
@@ -182,32 +193,38 @@ export const I18N = {
     // bantuan
     help_cara_belanja_title: 'Cara Berbelanja',
     help_cara_belanja_p1:
-      'Pilih produk di katalog Batik Daffa, tentukan ukuran bila memilih busana siap pakai, lalu masukkan ke keranjang. Setelah itu buka keranjang dan lanjutkan ke konfirmasi pesanan.',
+      'Pilih produk di katalog Batik Daffa berdasarkan kategori, motif pesisiran (Mega Mendung, Singaan, Wadasan, dll.), jenis bahan (Viscose, Doby, ATBM, Katun), dan teknik produksi. Tentukan ukuran bila memilih busana, lalu masukkan ke keranjang.',
     help_cara_belanja_p2:
-      'Isi nama penerima, nomor WhatsApp aktif, dan alamat pengiriman, lalu pilih metode pembayaran (rekening bank & QRIS langsung ditampilkan). Admin Batik Daffa akan memverifikasi pesanan dan menghubungi Anda untuk informasi pengiriman.',
-    help_ukuran_title: 'Panduan Ukuran',
+      'Isi nama penerima, nomor WhatsApp aktif, dan alamat pengiriman, lalu pilih metode pembayaran (Transfer Bank m-Banking atau DP 50% untuk pesanan besar/custom). Admin Batik Daffa akan memverifikasi pesanan dan menghubungi Anda untuk informasi pengiriman.',
+    help_ukuran_title: 'Panduan Ukuran Pria & Wanita',
     help_ukuran_p1:
-      'Ukuran busana mengikuti standar S, M, L, dan XL. Untuk kain lembaran, keterangan ukuran dan bahan tertera pada detail masing-masing produk.',
+      'Busana Batik Daffa tersedia dalam pilihan potongan Pria dan Wanita ukuran S, M, L, XL, hingga XXL. Untuk kain lembaran (Viscose, Doby, Katun, ATBM), detail bahan dan teknik tertera pada halaman masing-masing produk.',
     help_ukuran_p2:
-      'Bila ragu memilih ukuran, kirim lingkar dada dan panjang badan melalui WhatsApp agar tim Batik Daffa membantu mencocokkannya.',
+      'Bila ragu menentukan ukuran atau ingin memesan ukuran khusus / seragam keluarga, kirimkan lingkar dada dan panjang badan melalui WhatsApp agar tim kami membantu mencocokkannya.',
     help_pengiriman_title: 'Pengiriman & Pembayaran',
     help_pengiriman_p1:
-      'Pesanan dikirim dari Cirebon melalui ekspedisi pilihan. Admin kami akan mengonfirmasi ongkir serta mengirimkan nomor resi setelah pesanan diverifikasi.',
+      'Pengiriman paket reguler dikirim langsung dari workshop kami di Panembahan, Plered, Cirebon melalui ekspedisi JNE, J&T, dan Tiki. Untuk pesanan grosir atau partai besar (karungan), tersedia pengiriman kargo ekspedisi dengan tarif hemat.',
     help_pengiriman_p2:
-      'Pembayaran dapat dilakukan melalui Transfer Bank (nomor rekening tampil langsung saat checkout), QRIS / E-Wallet, atau COD. Anda tidak perlu mengirim konfirmasi manual — jika memerlukan bantuan, silakan hubungi tim kami via WhatsApp.',
+      'Pembayaran harian utama menggunakan Transfer Bank m-Banking (seperti BCA) yang langsung ditampilkan saat checkout. Untuk pesanan bernominal besar, seragam, atau custom, tersedia fleksibilitas cicilan DP 50% (pelunasan sebelum kirim). QRIS atau COD tersedia sesuai pengaktifan admin.',
+    help_garansi_title: 'Garansi & Penukaran',
+    help_garansi_p1:
+      'Batik Daffa memberikan garansi penukaran ukuran untuk busana siap pakai apabila ukuran yang diterima kurang sesuai (selama produk belum dicuci/dipakai dan label masih utuh).',
+    help_garansi_p2:
+      'Kami juga memberikan garansi penggantian atau pembuatan ulang khusus untuk cacat kualitas murni akibat kesalahan produksi, seperti kain robek atau berlubang. Hubungi tim kami via WhatsApp maksimal 3 hari setelah paket diterima dengan menyertakan foto/video unboxing.',
 
     // footer
     footer_about:
-      'Batik Daffa menghadirkan kain tulis, batik cap, dan busana warisan Nusantara karya pengrajin Trusmi, Cirebon.',
+      'Rumah batik pesisiran Cirebon sejak tahun 2000-an — menghadirkan batik tulis, cap, dan kombinasi pada bahan Viscose, Doby, Katun, hingga ATBM eksklusif.',
     footer_category: 'Koleksi',
     footer_help: 'Bantuan',
     footer_contact: 'Kontak',
     help_how: 'Cara Berbelanja',
     help_size: 'Panduan Ukuran',
     help_pay: 'Pengiriman & Pembayaran',
+    help_garansi: 'Garansi & Penukaran',
     help_contact: 'Hubungi Kami',
-    address: 'Sentra Batik Trusmi, Cirebon',
-    footer_note: 'Batik Daffa · Karya pengrajin Trusmi, Cirebon.',
+    address: 'Jl. Raya Panembahan No. 52/468, Panembahan, Kec. Plered, Kabupaten Cirebon, Jawa Barat 45154',
+    footer_note: 'Batik Daffa · Panembahan, Plered, Cirebon.',
     rights: 'Hak cipta dilindungi.',
   },
 
@@ -217,6 +234,7 @@ export const I18N = {
 
     nav_home: 'Home',
     nav_catalog: 'Catalog',
+    nav_about: 'About',
     nav_cart: 'Cart',
     nav_orders: 'Orders',
     nav_help: 'Help',
@@ -255,9 +273,18 @@ export const I18N = {
     sort_cheap: 'Price: Low to High',
     sort_pricey: 'Price: High to Low',
     filter_title: 'Filter',
+    filter_bahan: 'Fabric Material',
+    bahan_all: 'All materials',
+    filter_teknik: 'Technique',
+    teknik_all: 'All techniques',
+    filter_gender: 'Fit / Gender',
+    gender_all: 'All fits',
     filter_price: 'Price Range',
     price_all: 'All prices',
     price_under_200: 'Under Rp 200,000',
+    price_200_500: 'Rp 200,000 – Rp 500,000',
+    price_500_2000: 'Rp 500,000 – Rp 2,000,000',
+    price_above_2000: 'Above Rp 2,000,000',
     price_200_350: 'Rp 200,000 – Rp 350,000',
     price_above_350: 'Above Rp 350,000',
     filter_stock: 'Availability',
@@ -354,8 +381,9 @@ export const I18N = {
     recipient_name: 'Recipient Name',
     recipient_phone: 'WhatsApp / Phone Number',
     payment_method: 'Payment Method',
-    pay_transfer: 'Bank Transfer',
-    pay_ewallet: 'E-Wallet',
+    pay_transfer: 'Bank Transfer (Full)',
+    pay_dp50: '50% Down Payment (Bank Transfer)',
+    pay_ewallet: 'QRIS / E-Wallet',
     pay_cod: 'Cash on Delivery',
     err_recipient: 'Recipient name is required.',
     err_phone: 'Recipient phone number is invalid.',
@@ -384,21 +412,27 @@ export const I18N = {
       'If unsure, share your chest and length measurements on WhatsApp and the Batik Daffa team will help match your fit.',
     help_pengiriman_title: 'Shipping & Payment',
     help_pengiriman_p1:
-      'Orders ship from Cirebon via your preferred courier. Shipping cost is calculated once destination and weight are confirmed.',
+      'Regular orders ship from our workshop in Panembahan, Plered, Cirebon via JNE, J&T, and Tiki. Cargo shipping is available for wholesale orders.',
     help_pengiriman_p2:
-      'Payments are accepted via bank transfer, e-wallet, or cash on delivery. Payment details are sent on WhatsApp upon confirmation.',
+      'Daily payments use Bank Transfer (m-Banking / BCA). A 50% down payment option is available for large, uniform, or custom orders. QRIS and COD appear when enabled by admin.',
+    help_garansi_title: 'Warranty & Returns',
+    help_garansi_p1:
+      'Size exchange is available for unworn ready-to-wear apparel with original tags intact.',
+    help_garansi_p2:
+      'We provide replacement or re-crafting warranty for verified production defects (such as torn or punctured fabric). Contact us via WhatsApp within 3 days of delivery.',
 
     footer_about:
-      'Batik Daffa offers hand-drawn batik, stamped fabrics, and heritage Nusantara apparel crafted by Trusmi artisans in Cirebon.',
+      'Coastal Cirebon batik workshop since the 2000s — crafting hand-drawn, stamped, and combination batik on Viscose, Doby, Cotton, and exclusive ATBM fabrics.',
     footer_category: 'Collections',
     footer_help: 'Help',
     footer_contact: 'Contact',
     help_how: 'How to Shop',
     help_size: 'Size Guide',
     help_pay: 'Shipping & Payment',
+    help_garansi: 'Warranty & Returns',
     help_contact: 'Contact Us',
-    address: 'Trusmi Batik District, Cirebon',
-    footer_note: 'Batik Daffa · Handcrafted in Trusmi, Cirebon.',
+    address: 'Jl. Raya Panembahan No. 52/468, Panembahan, Kec. Plered, Kabupaten Cirebon, Jawa Barat 45154',
+    footer_note: 'Batik Daffa · Panembahan, Plered, Cirebon.',
     rights: 'All rights reserved.',
   },
 }

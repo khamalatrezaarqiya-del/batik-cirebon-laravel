@@ -9,17 +9,40 @@ import { makeT, readLang } from '../../Lib/i18n.js'
 const MOTIFS = [
   { key: 'all', labelKey: 'motif_all' },
   { key: 'mega', label: 'Mega Mendung' },
-  { key: 'kawung', label: 'Kawung' },
-  { key: 'parang', label: 'Parang' },
-  { key: 'truntum', label: 'Truntum' },
+  { key: 'singaan', label: 'Singaan' },
   { key: 'wadasan', label: 'Wadasan' },
+  { key: 'truntum', label: 'Truntum' },
+  { key: 'kawung', label: 'Kawung' },
+]
+
+const BAHANS = [
+  { key: 'all', labelKey: 'bahan_all' },
+  { key: 'viscose', label: 'Viscose' },
+  { key: 'doby', label: 'Doby' },
+  { key: 'atbm', label: 'ATBM' },
+  { key: 'katun', label: 'Katun' },
+]
+
+const TEKNIKS = [
+  { key: 'all', labelKey: 'teknik_all' },
+  { key: 'tulis', label: 'Batik Tulis Murni' },
+  { key: 'cap', label: 'Batik Cap' },
+  { key: 'kombinasi', label: 'Kombinasi Cap & Tulis' },
+]
+
+const GENDERS = [
+  { key: 'all', labelKey: 'gender_all' },
+  { key: 'pria', label: 'Pria' },
+  { key: 'wanita', label: 'Wanita' },
+  { key: 'unisex', label: 'Unisex / Kain' },
 ]
 
 const PRICE_RANGES = [
   { key: 'all', labelKey: 'price_all' },
   { key: 'under-200', labelKey: 'price_under_200' },
-  { key: '200-350', labelKey: 'price_200_350' },
-  { key: 'above-350', labelKey: 'price_above_350' },
+  { key: '200-500', labelKey: 'price_200_500' },
+  { key: '500-2000', labelKey: 'price_500_2000' },
+  { key: 'above-2000', labelKey: 'price_above_2000' },
 ]
 
 const IconFilter = () => (
@@ -57,7 +80,7 @@ function formatPageLabel(label, lang = 'id') {
   return raw
 }
 
-function FilterGroups({ categories, cat, motif, price, stock, setParam, t }) {
+function FilterGroups({ categories, cat, motif, bahan, teknik, gender, price, stock, setParam, t }) {
   return (
     <div className="filter-groups">
       <div className="filter-group">
@@ -106,6 +129,57 @@ function FilterGroups({ categories, cat, motif, price, stock, setParam, t }) {
       </div>
 
       <div className="filter-group">
+        <h3>{t('filter_bahan')}</h3>
+        <div className="filter-options" role="group" aria-label={t('filter_bahan')}>
+          {BAHANS.map((b) => (
+            <button
+              type="button"
+              key={b.key}
+              className={`filter-opt${bahan === b.key ? ' active' : ''}`}
+              aria-pressed={bahan === b.key}
+              onClick={() => setParam('bahan', b.key)}
+            >
+              <span>{b.labelKey ? t(b.labelKey) : b.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="filter-group">
+        <h3>{t('filter_teknik')}</h3>
+        <div className="filter-options" role="group" aria-label={t('filter_teknik')}>
+          {TEKNIKS.map((tk) => (
+            <button
+              type="button"
+              key={tk.key}
+              className={`filter-opt${teknik === tk.key ? ' active' : ''}`}
+              aria-pressed={teknik === tk.key}
+              onClick={() => setParam('teknik', tk.key)}
+            >
+              <span>{tk.labelKey ? t(tk.labelKey) : tk.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="filter-group">
+        <h3>{t('filter_gender')}</h3>
+        <div className="filter-options" role="group" aria-label={t('filter_gender')}>
+          {GENDERS.map((g) => (
+            <button
+              type="button"
+              key={g.key}
+              className={`filter-opt${gender === g.key ? ' active' : ''}`}
+              aria-pressed={gender === g.key}
+              onClick={() => setParam('gender', g.key)}
+            >
+              <span>{g.labelKey ? t(g.labelKey) : g.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="filter-group">
         <h3>{t('filter_price')}</h3>
         <div className="filter-options" role="group" aria-label={t('filter_price')}>
           {PRICE_RANGES.map((p) => (
@@ -143,6 +217,9 @@ export default function Catalog({ products, categories = [], filters = {} }) {
 
   const cat = filters.cat || 'all'
   const motif = filters.motif || 'all'
+  const bahan = filters.bahan || 'all'
+  const teknik = filters.teknik || 'all'
+  const gender = filters.gender || 'all'
   const price = filters.price || 'all'
   const stock = filters.stock || 'all'
   const term = filters.term || ''
@@ -176,12 +253,15 @@ export default function Catalog({ products, categories = [], filters = {} }) {
     }
   }, [drawerOpen])
 
-  useReveal([cat, term, sort, motif, price, stock, products?.data])
+  useReveal([cat, term, sort, motif, bahan, teknik, gender, price, stock, products?.data])
 
   const setParam = (key, value) => {
     const next = {
       cat,
       motif,
+      bahan,
+      teknik,
+      gender,
       price,
       stock,
       q: term,
@@ -191,6 +271,9 @@ export default function Catalog({ products, categories = [], filters = {} }) {
     const params = new URLSearchParams()
     if (next.cat && next.cat !== 'all') params.set('cat', next.cat)
     if (next.motif && next.motif !== 'all') params.set('motif', next.motif)
+    if (next.bahan && next.bahan !== 'all') params.set('bahan', next.bahan)
+    if (next.teknik && next.teknik !== 'all') params.set('teknik', next.teknik)
+    if (next.gender && next.gender !== 'all') params.set('gender', next.gender)
     if (next.price && next.price !== 'all') params.set('price', next.price)
     if (next.stock && next.stock !== 'all') params.set('stock', next.stock)
     if (next.q) params.set('q', next.q)
@@ -214,14 +297,18 @@ export default function Catalog({ products, categories = [], filters = {} }) {
   const activeFilterCount =
     (cat !== 'all' ? 1 : 0) +
     (motif !== 'all' ? 1 : 0) +
+    (bahan !== 'all' ? 1 : 0) +
+    (teknik !== 'all' ? 1 : 0) +
+    (gender !== 'all' ? 1 : 0) +
     (price !== 'all' ? 1 : 0) +
     (stock !== 'all' ? 1 : 0) +
     (term !== '' ? 1 : 0)
 
-  const maxId = Math.max(...(products?.data || []).map((p) => p.id), 26)
   const activeCatName = categories.find((c) => c.slug === cat)?.nama || cat
-  const activeMotifObj = MOTIFS.find((m) => m.key === motif)
-  const activeMotifName = activeMotifObj?.label || motif
+  const activeMotifName = MOTIFS.find((m) => m.key === motif)?.label || motif
+  const activeBahanName = BAHANS.find((b) => b.key === bahan)?.label || bahan
+  const activeTeknikName = TEKNIKS.find((tk) => tk.key === teknik)?.label || teknik
+  const activeGenderName = GENDERS.find((g) => g.key === gender)?.label || gender
   const activePriceObj = PRICE_RANGES.find((p) => p.key === price)
 
   return (
@@ -309,6 +396,9 @@ export default function Catalog({ products, categories = [], filters = {} }) {
               categories={categories}
               cat={cat}
               motif={motif}
+              bahan={bahan}
+              teknik={teknik}
+              gender={gender}
               price={price}
               stock={stock}
               setParam={setParam}
@@ -328,6 +418,24 @@ export default function Catalog({ products, categories = [], filters = {} }) {
                 {motif !== 'all' && (
                   <button type="button" className="active-chip" onClick={() => setParam('motif', 'all')}>
                     <span>{activeMotifName}</span>
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+                {bahan !== 'all' && (
+                  <button type="button" className="active-chip" onClick={() => setParam('bahan', 'all')}>
+                    <span>{activeBahanName}</span>
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+                {teknik !== 'all' && (
+                  <button type="button" className="active-chip" onClick={() => setParam('teknik', 'all')}>
+                    <span>{activeTeknikName}</span>
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+                {gender !== 'all' && (
+                  <button type="button" className="active-chip" onClick={() => setParam('gender', 'all')}>
+                    <span>{activeGenderName}</span>
                     <span aria-hidden="true">×</span>
                   </button>
                 )}
@@ -364,7 +472,7 @@ export default function Catalog({ products, categories = [], filters = {} }) {
               <>
                 <div className="grid catalog-grid">
                   {products.data.map((p, idx) => (
-                    <ProductCard key={p.id} product={p} t={t} addToCart={addToCart} maxId={maxId} index={idx} />
+                    <ProductCard key={p.id} product={p} t={t} addToCart={addToCart} index={idx} />
                   ))}
                 </div>
 
@@ -417,6 +525,9 @@ export default function Catalog({ products, categories = [], filters = {} }) {
                 categories={categories}
                 cat={cat}
                 motif={motif}
+                bahan={bahan}
+                teknik={teknik}
+                gender={gender}
                 price={price}
                 stock={stock}
                 setParam={setParam}

@@ -11,8 +11,37 @@ class Product extends Model
 {
     use HasFactory;
 
+    public const MOTIF_OPTIONS = [
+        'mega' => 'Mega Mendung',
+        'singaan' => 'Singaan',
+        'wadasan' => 'Wadasan',
+        'truntum' => 'Truntum',
+        'kawung' => 'Kawung',
+        'lainnya' => 'Pesisiran Lainnya',
+    ];
+
+    public const BAHAN_OPTIONS = [
+        'viscose' => 'Viscose',
+        'doby' => 'Doby',
+        'atbm' => 'ATBM (Tenun Bukan Mesin)',
+        'katun' => 'Katun',
+    ];
+
+    public const TEKNIK_OPTIONS = [
+        'tulis' => 'Batik Tulis Murni',
+        'cap' => 'Batik Cap',
+        'kombinasi' => 'Kombinasi Cap & Tulis',
+    ];
+
+    public const GENDER_OPTIONS = [
+        'pria' => 'Pria',
+        'wanita' => 'Wanita',
+        'unisex' => 'Unisex / Kain',
+    ];
+
     protected $fillable = [
         'category_id', 'nama', 'slug', 'harga', 'motif',
+        'bahan', 'teknik', 'gender',
         'c1', 'c2', 'foto', 'deskripsi', 'stok', 'is_active',
         'is_best_seller', 'is_new',
     ];

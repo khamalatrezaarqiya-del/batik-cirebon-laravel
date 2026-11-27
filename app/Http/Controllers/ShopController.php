@@ -121,6 +121,9 @@ class ShopController extends Controller
     {
         $cat = mb_substr($request->string('cat')->toString() ?: 'all', 0, 64);
         $motif = mb_substr($request->string('motif')->toString() ?: 'all', 0, 64);
+        $bahan = mb_substr($request->string('bahan')->toString() ?: 'all', 0, 40);
+        $teknik = mb_substr($request->string('teknik')->toString() ?: 'all', 0, 40);
+        $gender = mb_substr($request->string('gender')->toString() ?: 'all', 0, 24);
         $price = mb_substr($request->string('price')->toString() ?: 'all', 0, 32);
         $stock = mb_substr($request->string('stock')->toString() ?: 'all', 0, 32);
         $term = mb_substr(trim($request->string('q')->toString()), 0, 100);
@@ -133,14 +136,22 @@ class ShopController extends Controller
             ->with('category:id,slug,nama')
             ->when($cat !== 'all', fn ($q) => $q->whereHas('category', fn ($c) => $c->where('slug', $cat)))
             ->when($motif !== 'all', fn ($q) => $q->where('motif', $motif))
+            ->when($bahan !== 'all', fn ($q) => $q->where('bahan', $bahan))
+            ->when($teknik !== 'all', fn ($q) => $q->where('teknik', $teknik))
+            ->when($gender !== 'all', fn ($q) => $q->where('gender', $gender))
             ->when($price === 'under-200', fn ($q) => $q->where('harga', '<', 200000))
             ->when($price === '200-350', fn ($q) => $q->whereBetween('harga', [200000, 350000]))
             ->when($price === 'above-350', fn ($q) => $q->where('harga', '>', 350000))
+            ->when($price === '200-500', fn ($q) => $q->whereBetween('harga', [200000, 500000]))
+            ->when($price === '500-2000', fn ($q) => $q->whereBetween('harga', [500001, 2000000]))
+            ->when($price === 'above-2000', fn ($q) => $q->where('harga', '>', 2000000))
             ->when($stock === 'in_stock', fn ($q) => $q->where('stok', '>', 0))
             ->when($term !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->whereRaw("nama LIKE ? ESCAPE '!'", ["%{$escapedTerm}%"])
                 ->orWhereRaw("COALESCE(deskripsi, '') LIKE ? ESCAPE '!'", ["%{$escapedTerm}%"])
-                ->orWhereRaw("motif LIKE ? ESCAPE '!'", ["%{$escapedTerm}%"])))
+                ->orWhereRaw("motif LIKE ? ESCAPE '!'", ["%{$escapedTerm}%"])
+                ->orWhereRaw("COALESCE(bahan, '') LIKE ? ESCAPE '!'", ["%{$escapedTerm}%"])
+                ->orWhereRaw("COALESCE(teknik, '') LIKE ? ESCAPE '!'", ["%{$escapedTerm}%"])))
             ->when($sort === 'best', fn ($q) => $q
                 ->withSum('orderItems as sold_qty', 'qty')
                 ->orderByDesc('is_best_seller')
@@ -158,7 +169,7 @@ class ShopController extends Controller
             'categories' => Category::withCount([
                 'products' => fn ($q) => $q->where('is_active', true),
             ])->orderBy('id')->get(['id', 'slug', 'nama']),
-            'filters' => compact('cat', 'motif', 'price', 'stock', 'term', 'sort'),
+            'filters' => compact('cat', 'motif', 'bahan', 'teknik', 'gender', 'price', 'stock', 'term', 'sort'),
         ]);
     }
 
@@ -248,10 +259,10 @@ class ShopController extends Controller
             ],
             'shipping_address' => ['required', 'string', 'min:5', 'max:1000'],
             'note' => ['nullable', 'string', 'max:1000'],
-            'payment_method' => ['required', 'in:transfer,ewallet,cod'],
+            'payment_method' => ['required', 'in:transfer,dp50,ewallet,cod'],
             'items' => ['required', 'array', 'min:1', 'max:30'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'items.*.size' => ['nullable', 'string', 'in:S,M,L,XL'],
+            'items.*.size' => ['nullable', 'string', 'in:S,M,L,XL,XXL'],
             'items.*.qty' => ['required', 'integer', 'min:1', 'max:'.self::MAX_QTY_PER_PRODUCT],
             'idempotency_key' => ['nullable', 'string', 'min:8', 'max:64', 'regex:/^[A-Za-z0-9_\-]+$/'],
         ]);
@@ -545,17 +556,38 @@ class ShopController extends Controller
             ->with('success', 'Terima kasih! Bintang dan ulasan Anda berhasil disimpan.');
     }
 
-    /** Informasi rekening bank, QRIS, dan COD yang dikelola dari Admin. */
+    /** Informasi rekening bank, DP 50%, QRIS, dan COD beserta status ON/OFF dari Admin. */
     private function paymentInfo(): array
     {
+        $transferOn = SiteSetting::getValue('pay_transfer_enabled', '1') === '1';
+        $dp50On = SiteSetting::getValue('pay_dp50_enabled', '1') === '1';
+        $qrisOn = SiteSetting::getValue('pay_qris_enabled', '0') === '1';
+        $codOn = SiteSetting::getValue('pay_cod_enabled', '0') === '1';
+
+        if (! $transferOn && ! $dp50On && ! $qrisOn && ! $codOn) {
+            $transferOn = true;
+        }
+
         return [
+            'enabled' => [
+                'transfer' => $transferOn,
+                'dp50' => $dp50On,
+                'ewallet' => $qrisOn,
+                'cod' => $codOn,
+            ],
             'bank' => [
                 'name' => SiteSetting::getValue('pay_bank_name', 'Bank BCA'),
                 'account' => SiteSetting::getValue('pay_bank_account', '1340 5829 10'),
-                'holder' => SiteSetting::getValue('pay_bank_holder', 'Batik Daffa Trusmi'),
+                'holder' => SiteSetting::getValue('pay_bank_holder', 'Batik Daffa Cirebon'),
                 'note' => SiteSetting::getValue(
                     'pay_bank_note',
-                    'Transfer sesuai nominal total pesanan. Admin akan memverifikasi pembayaran dan menghubungi Anda.'
+                    'Transfer m-Banking sesuai nominal total pesanan. Admin Batik Daffa akan memverifikasi mutasi dan menghubungi Anda untuk pengiriman.'
+                ),
+            ],
+            'dp50' => [
+                'note' => SiteSetting::getValue(
+                    'pay_dp50_note',
+                    'Khusus pesanan bernominal besar, seragam, atau custom. Transfer DP 50% terlebih dahulu dan pelunasan dilakukan sebelum pengiriman.'
                 ),
             ],
             'qris' => [
@@ -563,7 +595,7 @@ class ShopController extends Controller
                     SiteSetting::getValue('pay_qris_image'),
                     '/images/qris-default.svg'
                 ),
-                'merchant' => SiteSetting::getValue('pay_qris_merchant', 'Batik Daffa · Trusmi Cirebon'),
+                'merchant' => SiteSetting::getValue('pay_qris_merchant', 'Batik Daffa · Plered, Cirebon'),
                 'info' => SiteSetting::getValue(
                     'pay_ewallet_info',
                     'Scan QRIS melalui GoPay, OVO, DANA, ShopeePay, atau mobile banking.'
@@ -580,12 +612,30 @@ class ShopController extends Controller
 
     public function help(?string $topic = null): Response
     {
-        $safeTopic = in_array($topic, ['cara-belanja', 'ukuran', 'pengiriman'], true)
+        $safeTopic = in_array($topic, ['cara-belanja', 'ukuran', 'pengiriman', 'garansi'], true)
             ? $topic
             : 'cara-belanja';
 
         return Inertia::render('Shop/Help', [
             'topic' => $safeTopic,
+        ]);
+    }
+
+    public function about(): Response
+    {
+        return Inertia::render('Shop/About');
+    }
+
+    public function orderNota(Order $order)
+    {
+        if (! auth('admin')->check() || ! (bool) auth('admin')->user()?->is_admin) {
+            abort(403);
+        }
+
+        $order->load('items.product:id,nama');
+
+        return view('admin.order-nota', [
+            'order' => $order,
         ]);
     }
 
@@ -825,6 +875,9 @@ class ShopController extends Controller
             'slug' => $p->slug,
             'harga' => $p->harga,
             'motif' => $p->motif,
+            'bahan' => $p->bahan,
+            'teknik' => $p->teknik,
+            'gender' => $p->gender,
             'c1' => $p->c1,
             'c2' => $p->c2,
             'foto' => $this->resolvePhotoUrl($p->foto),

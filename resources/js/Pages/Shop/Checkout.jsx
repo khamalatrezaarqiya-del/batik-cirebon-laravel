@@ -8,8 +8,9 @@ import { clearCart, readCart } from '../../Lib/cart.js'
 import { formatRupiah } from '../../Lib/format.js'
 import { makeT, readLang } from '../../Lib/i18n.js'
 
-const PAYMENTS = [
-  { key: 'transfer', desc: 'Nomor rekening langsung tampil di bawah setelah dipilih.' },
+const ALL_PAYMENTS = [
+  { key: 'transfer', desc: 'Nomor rekening langsung tampil di bawah setelah dipilih (m-Banking / BCA).' },
+  { key: 'dp50', desc: 'Bayar DP 50% terlebih dahulu untuk pesanan nominal besar, seragam, atau custom.' },
   { key: 'ewallet', desc: 'Scan QRIS langsung (GoPay, OVO, DANA, ShopeePay, m-Banking).' },
   { key: 'cod', desc: 'Bayar tunai langsung saat paket tiba di alamat tujuan.' },
 ]
@@ -20,6 +21,12 @@ export default function Checkout({ products = [], paymentInfo = null }) {
   const [lang, setLang] = useState(() => readLang())
   const t = makeT(lang)
   const [cart, setCart] = useState(() => readCart())
+
+  const availablePayments = useMemo(() => {
+    const enabled = paymentInfo?.enabled || { transfer: true, dp50: true, ewallet: false, cod: false }
+    const filtered = ALL_PAYMENTS.filter((p) => enabled[p.key])
+    return filtered.length ? filtered : [ALL_PAYMENTS[0]]
+  }, [paymentInfo])
 
   useEffect(() => {
     const onLang = () => setLang(readLang())
@@ -47,10 +54,16 @@ export default function Checkout({ products = [], paymentInfo = null }) {
     phone: '',
     shipping_address: '',
     note: '',
-    payment_method: 'transfer',
+    payment_method: availablePayments[0]?.key || 'transfer',
     items: [],
     idempotency_key: '',
   })
+
+  useEffect(() => {
+    if (!availablePayments.some((p) => p.key === form.data.payment_method)) {
+      form.setData('payment_method', availablePayments[0]?.key || 'transfer')
+    }
+  }, [availablePayments])
 
   const submit = (e) => {
     e.preventDefault()
@@ -146,13 +159,13 @@ export default function Checkout({ products = [], paymentInfo = null }) {
                 rows="2"
                 value={form.data.note}
                 onChange={(e) => form.setData('note', e.target.value)}
-                placeholder="Contoh: bungkus kado, pilih ekspedisi JNE/J&T, dsb."
+                placeholder="Contoh: pilih ekspedisi JNE / J&T / Tiki, bungkus kado, dsb."
               />
             </label>
 
             <h3>{t('payment_method')}</h3>
             <div className="radio-group">
-              {PAYMENTS.map((p) => (
+              {availablePayments.map((p) => (
                 <label className={`radio-row${form.data.payment_method === p.key ? ' selected' : ''}`} key={p.key}>
                   <input
                     type="radio"

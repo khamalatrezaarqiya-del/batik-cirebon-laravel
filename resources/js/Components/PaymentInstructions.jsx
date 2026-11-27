@@ -30,12 +30,16 @@ export default function PaymentInstructions({ method, paymentInfo, amount = 0 })
     }
   }
 
-  if (method === 'transfer') {
+  if (method === 'transfer' || method === 'dp50') {
     const bank = paymentInfo.bank || {}
+    const isDp = method === 'dp50'
+    const dpAmount = Math.ceil(amount / 2)
+    const noteText = isDp ? (paymentInfo.dp50?.note || bank.note) : bank.note
+
     return (
-      <div className="pay-detail-card" role="region" aria-label="Detail Transfer Bank">
+      <div className="pay-detail-card" role="region" aria-label={isDp ? 'Detail Pembayaran DP 50%' : 'Detail Transfer Bank'}>
         <div className="pay-detail-head">
-          <span className="pay-detail-badge">Transfer Bank</span>
+          <span className="pay-detail-badge">{isDp ? 'DP 50% · Transfer Bank' : 'Transfer Bank'}</span>
           <strong>{bank.name}</strong>
         </div>
 
@@ -56,13 +60,26 @@ export default function PaymentInstructions({ method, paymentInfo, amount = 0 })
         </div>
 
         {amount > 0 && (
-          <div className="pay-amount-row">
-            <span>Nominal Pembayaran</span>
-            <strong>{formatRupiah(amount)}</strong>
-          </div>
+          isDp ? (
+            <>
+              <div className="pay-amount-row">
+                <span>Total Pesanan</span>
+                <strong>{formatRupiah(amount)}</strong>
+              </div>
+              <div className="pay-amount-row">
+                <span>Nominal DP 50% (Bayar Awal)</span>
+                <strong>{formatRupiah(dpAmount)}</strong>
+              </div>
+            </>
+          ) : (
+            <div className="pay-amount-row">
+              <span>Nominal Pembayaran</span>
+              <strong>{formatRupiah(amount)}</strong>
+            </div>
+          )
         )}
 
-        {bank.note && <p className="pay-detail-note">{bank.note}</p>}
+        {noteText && <p className="pay-detail-note">{noteText}</p>}
       </div>
     )
   }

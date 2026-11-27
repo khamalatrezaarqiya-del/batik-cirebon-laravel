@@ -60,7 +60,19 @@ const WADASAN = (accent) => (
   </g>
 )
 
-const MOTIFS = { mega: MEGA, kawung: KAWUNG, parang: PARANG, truntum: TRUNTUM, wadasan: WADASAN }
+const SINGAAN = (accent) => (
+  <g fill="none" stroke={accent} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M26 78 C24 54 42 40 60 40 C78 40 96 54 94 78" strokeWidth="4.5" opacity=".52" />
+    <path d="M36 78 C36 60 48 50 60 50 C72 50 84 60 84 78" strokeWidth="2.8" opacity=".36" />
+    <path d="M46 42 Q60 22 74 42" strokeWidth="3.5" opacity=".48" />
+    <path d="M22 86 Q60 72 98 86" strokeWidth="4" opacity=".4" />
+    <circle cx="48" cy="60" r="3" fill={accent} opacity=".55" />
+    <circle cx="72" cy="60" r="3" fill={accent} opacity=".55" />
+    <circle cx="60" cy="24" r="3.5" fill={accent} opacity=".48" />
+  </g>
+)
+
+const MOTIFS = { mega: MEGA, singaan: SINGAAN, kawung: KAWUNG, parang: PARANG, truntum: TRUNTUM, wadasan: WADASAN }
 
 export default function Motif({ motif = 'mega', base = '#6b3d1f', accent = '#e6b871', className = '' }) {
   const safeBase = (base || '#6b3d1f').replace(/[^a-zA-Z0-9]/g, '')

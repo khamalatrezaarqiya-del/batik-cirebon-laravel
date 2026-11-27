@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react'
+import { Link, router, usePage } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
 import ShopLayout from '../../Layouts/ShopLayout.jsx'
 import { ProductImage } from '../../Components/Motif.jsx'
@@ -10,17 +10,40 @@ import { formatRupiah } from '../../Lib/format.js'
 import { makeT, readLang } from '../../Lib/i18n.js'
 import { waLink } from '../../Lib/whatsapp.js'
 
-const SIZES = ['S', 'M', 'L', 'XL']
+const SIZES = ['S', 'M', 'L', 'XL', 'XXL']
+
 const MOTIF_NAMES = {
   mega: 'Mega Mendung',
+  singaan: 'Singaan',
+  wadasan: 'Wadasan',
+  truntum: 'Truntum',
   kawung: 'Kawung',
   parang: 'Parang',
-  truntum: 'Truntum',
-  wadasan: 'Wadasan',
-  lainnya: 'Klasik Cirebon',
+  lainnya: 'Pesisiran Cirebon',
+}
+
+const BAHAN_NAMES = {
+  viscose: 'Viscose',
+  doby: 'Doby',
+  atbm: 'ATBM (Alat Tenun Bukan Mesin)',
+  katun: 'Katun',
+}
+
+const TEKNIK_NAMES = {
+  tulis: 'Batik Tulis Murni',
+  cap: 'Batik Cap',
+  kombinasi: 'Kombinasi Cap & Tulis',
+}
+
+const GENDER_NAMES = {
+  pria: 'Pria',
+  wanita: 'Wanita',
+  unisex: 'Unisex / Kain',
 }
 
 export default function ProductDetail({ product, related = [], reviews = [] }) {
+  const { props } = usePage()
+  const storeWhatsapp = props?.storeWhatsapp || ''
   const [lang, setLang] = useState(() => readLang())
   const t = makeT(lang)
   const [size, setSize] = useState('')
@@ -38,8 +61,10 @@ export default function ProductDetail({ product, related = [], reviews = [] }) {
   const availableStock = typeof product.stok === 'number' ? product.stok : MAX_QTY
   const maxAllowed = Math.max(1, Math.min(MAX_QTY, availableStock))
   const isOutOfStock = availableStock <= 0
-  const maxId = Math.max(product.id, ...related.map((p) => p.id), 26)
   const motifLabel = MOTIF_NAMES[product.motif] || product.motif
+  const bahanLabel = BAHAN_NAMES[product.bahan] || null
+  const teknikLabel = TEKNIK_NAMES[product.teknik] || null
+  const genderLabel = GENDER_NAMES[product.gender] || null
 
   const handleAdd = (goCheckout = false) => {
     if (isOutOfStock) return
@@ -55,7 +80,10 @@ export default function ProductDetail({ product, related = [], reviews = [] }) {
   }
 
   const askOnWa = () =>
-    waLink(`Halo Batik Daffa, saya mau tanya produk *${product.nama}*${hasSizes && size ? ` ukuran ${size}` : ''} (jumlah ${qty}).`)
+    waLink(
+      `Halo Batik Daffa, saya ingin bertanya mengenai produk *${product.nama}*${hasSizes && size ? ` ukuran ${size}` : ''} (jumlah ${qty}) atau penawaran harga grosir/seragam.`,
+      storeWhatsapp
+    )
 
   return (
     <ShopLayout title={product.nama}>
@@ -76,7 +104,10 @@ export default function ProductDetail({ product, related = [], reviews = [] }) {
           </div>
 
           <div className="detail-info">
-            <p className="detail-category">{product.kategori_nama}</p>
+            <p className="detail-category">
+              {product.kategori_nama}
+              {genderLabel && hasSizes ? ` · ${genderLabel}` : ''}
+            </p>
             <h1>{product.nama}</h1>
             <div className="detail-price">{formatRupiah(product.harga)}</div>
 
@@ -103,7 +134,9 @@ export default function ProductDetail({ product, related = [], reviews = [] }) {
             {hasSizes && (
               <div className="detail-option-block">
                 <div className="detail-option-head">
-                  <span className="option-label">{t('size_label')}</span>
+                  <span className="option-label">
+                    {t('size_label')}{genderLabel && product.gender !== 'unisex' ? ` (${genderLabel})` : ''}
+                  </span>
                   <button type="button" className="text-link inline-btn" onClick={() => setSizeModalOpen(true)}>
                     {t('help_size')}
                   </button>
@@ -151,15 +184,19 @@ export default function ProductDetail({ product, related = [], reviews = [] }) {
 
             <p className="detail-wa-row">
               <a className="text-link" href={askOnWa()} target="_blank" rel="noreferrer">
-                Tanyakan produk ini via WhatsApp
+                Tanyakan produk atau harga grosir (&gt;10 pcs) via WhatsApp
               </a>
             </p>
 
             <dl className="detail-specs">
               <div className="spec-row"><dt>Kategori</dt><dd>{product.kategori_nama}</dd></div>
               <div className="spec-row"><dt>Motif</dt><dd>{motifLabel}</dd></div>
-              <div className="spec-row"><dt>Asal</dt><dd>{t('detail_made')}</dd></div>
-              <div className="spec-row"><dt>Perawatan</dt><dd>Cuci tangan lembut, jemur di tempat teduh</dd></div>
+              {bahanLabel && <div className="spec-row"><dt>Jenis Bahan</dt><dd>{bahanLabel}</dd></div>}
+              {teknikLabel && <div className="spec-row"><dt>Teknik Produksi</dt><dd>{teknikLabel}</dd></div>}
+              {genderLabel && <div className="spec-row"><dt>Model</dt><dd>{genderLabel}</dd></div>}
+              <div className="spec-row"><dt>Workshop</dt><dd>{t('detail_made')}</dd></div>
+              <div className="spec-row"><dt>Pengiriman</dt><dd>JNE, J&amp;T, Tiki (Kargo untuk grosir)</dd></div>
+              <div className="spec-row"><dt>Garansi</dt><dd>Tukar ukuran &amp; garansi cacat produksi</dd></div>
             </dl>
           </div>
         </div>
@@ -195,14 +232,19 @@ export default function ProductDetail({ product, related = [], reviews = [] }) {
             </SectionTitle>
             <div className="grid">
               {related.map((p, idx) => (
-                <ProductCard key={p.id} product={p} t={t} addToCart={addToCart} maxId={maxId} index={idx} />
+                <ProductCard key={p.id} product={p} t={t} addToCart={addToCart} index={idx} />
               ))}
             </div>
           </section>
         )}
       </div>
 
-      <SizeGuideModal open={sizeModalOpen} onClose={() => setSizeModalOpen(false)} productName={product.nama} />
+      <SizeGuideModal
+        open={sizeModalOpen}
+        onClose={() => setSizeModalOpen(false)}
+        productName={product.nama}
+        defaultTab={product.gender === 'wanita' ? 'wanita' : 'pria'}
+      />
     </ShopLayout>
   )
 }

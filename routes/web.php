@@ -36,11 +36,16 @@ Route::controller(ShopController::class)->group(function () {
         ->middleware('throttle:order-mutation')
         ->name('order.review');
     Route::get('/bantuan/{topic?}', 'help')->name('help');
+    Route::get('/tentang', 'about')->name('about');
     Route::get('/api/cart-sync', 'cartSync')
         ->middleware('throttle:cart-sync')
         ->name('api.cart.sync');
     Route::get('/storage/{path}', 'publicFile')->where('path', '.*')->name('storage.public');
 });
+
+Route::get('/admin-nota/{order:id}', [ShopController::class, 'orderNota'])
+    ->middleware('auth:admin')
+    ->name('admin.orders.nota');
 
 Route::get('/dashboard', function () {
     $orders = Order::with('items.product:id,nama,slug')

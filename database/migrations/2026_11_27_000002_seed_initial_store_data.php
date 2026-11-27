@@ -6,12 +6,13 @@ use App\Models\Product;
 use Database\Seeders\ProductSeeder;
 use Database\Seeders\StoreVisualSeeder;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        if (app()->runningUnitTests()) {
+        if (app()->runningUnitTests() || ! Schema::hasColumn('products', 'bahan')) {
             return;
         }
 
