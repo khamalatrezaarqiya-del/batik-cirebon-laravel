@@ -144,6 +144,7 @@ class ManageStoreVisuals extends Page implements HasForms
                                     ->label('Link Tujuan Tombol')
                                     ->required()
                                     ->maxLength(255)
+                                    ->rules(['regex:#^(/[^/\\\\].*|/$|https://[^\s<>"\']+$)#i'])
                                     ->helperText('Contoh: /katalog?motif=mega atau /katalog'),
                             ]),
                         ]),

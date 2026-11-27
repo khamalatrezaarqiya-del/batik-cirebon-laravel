@@ -31,6 +31,7 @@ class StoreStatsOverview extends BaseWidget
         $lowStock = Product::where('is_active', true)->where('stok', '<=', 3)->count();
         $newOrders = Order::where('status', 'baru')->count();
         $revenue = (int) Order::where('status', '!=', 'batal')->sum('grand_total');
+        $paidRevenue = (int) Order::where('payment_status', 'paid')->sum('grand_total');
 
         $catSummary = Category::withCount(['products' => fn ($q) => $q->where('is_active', true)])
             ->orderBy('id')
@@ -39,7 +40,7 @@ class StoreStatsOverview extends BaseWidget
             ->implode(' · ');
 
         return [
-            Stat::make('Produk Tayang di Web', $activeProducts . ' / ' . $totalProducts)
+            Stat::make('Produk Tayang di Web', $activeProducts.' / '.$totalProducts)
                 ->description($catSummary ?: 'Belum ada kategori')
                 ->icon('heroicon-o-swatch')
                 ->color('primary')
@@ -57,8 +58,8 @@ class StoreStatsOverview extends BaseWidget
                 ->color($newOrders > 0 ? 'warning' : 'gray')
                 ->url(OrderResource::getUrl('index')),
 
-            Stat::make('Total Penjualan', 'Rp ' . number_format($revenue, 0, ',', '.'))
-                ->description('Akumulasi pesanan aktif')
+            Stat::make('Total Penjualan', 'Rp '.number_format($revenue, 0, ',', '.'))
+                ->description('Lunas terverifikasi: Rp '.number_format($paidRevenue, 0, ',', '.'))
                 ->icon('heroicon-o-banknotes')
                 ->color('success')
                 ->url(OrderResource::getUrl('index')),

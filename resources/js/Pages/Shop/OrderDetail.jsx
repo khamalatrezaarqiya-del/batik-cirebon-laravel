@@ -39,7 +39,7 @@ const RATING_LABELS = {
   5: 'Sangat Puas',
 }
 
-export default function OrderDetail({ order, paymentInfo = null }) {
+export default function OrderDetail({ order, paymentInfo = null, requiresVerification = false }) {
   const { props } = usePage()
   const flashSuccess = props?.flash?.success
   const storeWhatsapp = props?.storeWhatsapp || ''
@@ -57,13 +57,24 @@ export default function OrderDetail({ order, paymentInfo = null }) {
   const isNewParam = new URLSearchParams(window.location.search).get('new') === '1'
   const bannerMessage = flashSuccess || (isNewParam ? t('order_done') : '')
   const statusIdx = TIMELINE.indexOf(order.status)
-  const canConfirmComplete = order.status === 'diproses' || order.status === 'dikirim'
+  const canConfirmComplete = !requiresVerification && (order.status === 'diproses' || order.status === 'dikirim')
   const existingReview = order.reviews?.[0] || null
+
+  const verifyForm = useForm({
+    phone: '',
+  })
 
   const reviewForm = useForm({
     rating: 5,
     comment: '',
   })
+
+  const submitVerify = (e) => {
+    e.preventDefault()
+    verifyForm.post(`/pesanan/${order.order_code}/verifikasi`, {
+      preserveScroll: true,
+    })
+  }
 
   const confirmCompleted = () => {
     setCompleting(true)
@@ -121,9 +132,39 @@ export default function OrderDetail({ order, paymentInfo = null }) {
             <p><strong>{t('status_label')}</strong><span><span className={`status status-${order.status}`}>{t('status_' + order.status) || order.status}</span></span></p>
             <p><strong>{t('recipient_label')}</strong><span>{order.recipient_name} ({order.phone})</span></p>
             <p><strong>{t('payment_label')}</strong><span>{t('pay_' + order.payment_method)}</span></p>
-            <p className="full-row"><strong>{t('address_label')}</strong><span>{order.shipping_address}</span></p>
+            {order.shipping_address && (
+              <p className="full-row"><strong>{t('address_label')}</strong><span>{order.shipping_address}</span></p>
+            )}
             {order.note && <p className="full-row"><strong>{t('note')}</strong><span>{order.note}</span></p>}
           </div>
+
+          {requiresVerification && (
+            <form className="order-confirm-card" onSubmit={submitVerify} style={{ marginBottom: 24, display: 'block' }}>
+              <div style={{ marginBottom: 12 }}>
+                <strong>Verifikasi Nomor Telepon Penerima</strong>
+                <p className="muted-text">
+                  Untuk melindungi privasi alamat pelanggan, masukkan nomor WhatsApp/HP penerima yang digunakan saat checkout untuk melihat alamat lengkap, instruksi pembayaran, dan konfirmasi pesanan.
+                </p>
+              </div>
+              {verifyForm.errors.phone && (
+                <p className="error" role="alert" style={{ marginBottom: 10 }}>{verifyForm.errors.phone}</p>
+              )}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  type="tel"
+                  value={verifyForm.data.phone}
+                  onChange={(e) => verifyForm.setData('phone', e.target.value)}
+                  placeholder="08xxxxxxxxxx"
+                  required
+                  aria-label="Nomor telepon penerima"
+                  style={{ flex: '1 1 220px' }}
+                />
+                <button type="submit" className="button" disabled={verifyForm.processing}>
+                  {verifyForm.processing ? 'Memverifikasi…' : 'Verifikasi Pesanan'}
+                </button>
+              </div>
+            </form>
+          )}
 
           <h3>{t('label_items')}</h3>
           <ul className="order-items-list">

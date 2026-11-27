@@ -27,6 +27,48 @@ class OrderResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    private const STATUS_LABELS = [
+        'baru' => 'Baru',
+        'diproses' => 'Diproses',
+        'dikirim' => 'Dikirim',
+        'selesai' => 'Selesai',
+        'batal' => 'Batal',
+    ];
+
+    private const PAYMENT_LABELS = [
+        'pending' => 'Menunggu Bayar',
+        'paid' => 'Lunas',
+        'failed' => 'Gagal',
+        'expired' => 'Kedaluwarsa',
+        'cancelled' => 'Dibatalkan',
+        'refund_pending' => 'Menunggu Refund',
+        'refunded' => 'Direfund',
+    ];
+
+    public static function allowedStatusOptions(?Order $record): array
+    {
+        if (! $record || ! $record->exists) {
+            return self::STATUS_LABELS;
+        }
+
+        $current = $record->status ?: 'baru';
+        $allowed = array_unique(array_merge([$current], Order::ALLOWED_STATUS_TRANSITIONS[$current] ?? []));
+
+        return array_intersect_key(self::STATUS_LABELS, array_flip($allowed));
+    }
+
+    public static function allowedPaymentOptions(?Order $record): array
+    {
+        if (! $record || ! $record->exists) {
+            return self::PAYMENT_LABELS;
+        }
+
+        $current = $record->payment_status ?: 'pending';
+        $allowed = array_unique(array_merge([$current], Order::ALLOWED_PAYMENT_TRANSITIONS[$current] ?? []));
+
+        return array_intersect_key(self::PAYMENT_LABELS, array_flip($allowed));
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $count = Order::where('status', 'baru')->count();
@@ -34,7 +76,7 @@ class OrderResource extends Resource
         return $count > 0 ? (string) $count : null;
     }
 
-    public static function getNavigationBadgeColor(): string | array | null
+    public static function getNavigationBadgeColor(): string|array|null
     {
         return 'warning';
     }
@@ -50,22 +92,26 @@ class OrderResource extends Resource
 
                 Forms\Components\TextInput::make('recipient_name')
                     ->label('Nama penerima')
+                    ->maxLength(120)
                     ->required(),
 
                 Forms\Components\TextInput::make('phone')
                     ->label('Nomor HP')
                     ->tel()
+                    ->maxLength(20)
                     ->required(),
 
                 Forms\Components\Textarea::make('shipping_address')
                     ->label('Alamat pengiriman')
                     ->rows(3)
+                    ->maxLength(1000)
                     ->required()
                     ->columnSpanFull(),
 
                 Forms\Components\Textarea::make('note')
                     ->label('Catatan pembeli')
                     ->rows(2)
+                    ->maxLength(1000)
                     ->columnSpanFull(),
             ])->columns(2),
 
@@ -79,14 +125,14 @@ class OrderResource extends Resource
                     ])
                     ->required(),
 
+                Forms\Components\Select::make('payment_status')
+                    ->label('Status pembayaran')
+                    ->options(fn (?Order $record) => self::allowedPaymentOptions($record))
+                    ->required(),
+
                 Forms\Components\Select::make('status')
-                    ->options([
-                        'baru' => 'Baru',
-                        'diproses' => 'Diproses',
-                        'dikirim' => 'Dikirim',
-                        'selesai' => 'Selesai',
-                        'batal' => 'Batal',
-                    ])
+                    ->label('Status pesanan')
+                    ->options(fn (?Order $record) => self::allowedStatusOptions($record))
                     ->required(),
 
                 Forms\Components\TextInput::make('subtotal')
@@ -99,11 +145,14 @@ class OrderResource extends Resource
                 Forms\Components\TextInput::make('shipping_cost')
                     ->label('Ongkir')
                     ->numeric()
+                    ->minValue(0)
+                    ->maxValue(10000000)
                     ->prefix('Rp')
                     ->default(0)
                     ->live(onBlur: true)
                     ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                        $set('grand_total', (int) $get('subtotal') + (int) ($state ?: 0));
+                        $safeShipping = max(0, (int) ($state ?: 0));
+                        $set('grand_total', (int) $get('subtotal') + $safeShipping);
                     }),
 
                 Forms\Components\TextInput::make('grand_total')
@@ -143,7 +192,7 @@ class OrderResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('payment_method')
-                    ->label('Bayar')
+                    ->label('Metode')
                     ->badge()
                     ->formatStateUsing(fn (string $state) => match ($state) {
                         'transfer' => 'Transfer',
@@ -152,15 +201,20 @@ class OrderResource extends Resource
                         default => $state,
                     }),
 
+                Tables\Columns\TextColumn::make('payment_status')
+                    ->label('Pembayaran')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => self::PAYMENT_LABELS[$state ?: 'pending'] ?? ($state ?: 'pending'))
+                    ->color(fn (?string $state) => match ($state ?: 'pending') {
+                        'paid' => 'success',
+                        'pending', 'refund_pending' => 'warning',
+                        'failed', 'expired', 'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+
                 Tables\Columns\SelectColumn::make('status')
                     ->label('Status')
-                    ->options([
-                        'baru' => 'Baru',
-                        'diproses' => 'Diproses',
-                        'dikirim' => 'Dikirim',
-                        'selesai' => 'Selesai',
-                        'batal' => 'Batal',
-                    ])
+                    ->options(fn (Order $record) => self::allowedStatusOptions($record))
                     ->selectablePlaceholder(false),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -171,19 +225,17 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('reviews_avg_rating')
                     ->label('Rating')
                     ->avg('reviews', 'rating')
-                    ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 1) . ' / 5' : '—')
+                    ->formatStateUsing(fn ($state) => $state ? number_format((float) $state, 1).' / 5' : '—')
                     ->badge()
                     ->color(fn ($state) => $state ? 'warning' : 'gray'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
-                    ->options([
-                        'baru' => 'Baru',
-                        'diproses' => 'Diproses',
-                        'dikirim' => 'Dikirim',
-                        'selesai' => 'Selesai',
-                        'batal' => 'Batal',
-                    ]),
+                    ->options(self::STATUS_LABELS),
+
+                Tables\Filters\SelectFilter::make('payment_status')
+                    ->label('Pembayaran')
+                    ->options(self::PAYMENT_LABELS),
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([
@@ -197,6 +249,27 @@ class OrderResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('markPaid')
+                    ->label('Verifikasi Lunas')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('success')
+                    ->visible(fn (Order $r) => ($r->payment_status ?: 'pending') === 'pending' && $r->status !== 'batal')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Order $r) => "Tandai Pembayaran {$r->order_code} Lunas?")
+                    ->modalDescription('Pastikan mutasi rekening atau QRIS sesuai dengan nominal pesanan sebelum memverifikasi pembayaran.')
+                    ->action(function (Order $record): void {
+                        $updates = ['payment_status' => 'paid'];
+                        if ($record->status === 'baru') {
+                            $updates['status'] = 'diproses';
+                        }
+                        $record->update($updates);
+
+                        Notification::make()
+                            ->title("Pembayaran {$record->order_code} terverifikasi lunas")
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\Action::make('confirmOrder')
                     ->label('Konfirmasi')
                     ->icon('heroicon-o-check-circle')
@@ -240,16 +313,16 @@ class OrderResource extends Resource
 
         $phone = preg_replace('/\D/', '', (string) $order->phone);
         if (str_starts_with($phone, '0')) {
-            $phone = '62' . substr($phone, 1);
+            $phone = '62'.substr($phone, 1);
         } elseif (! str_starts_with($phone, '62')) {
-            $phone = '62' . $phone;
+            $phone = '62'.$phone;
         }
 
         $itemsText = $order->items
-            ->map(fn ($i) => ($i->product?->nama ?? 'Produk') . ($i->size ? " ({$i->size})" : '') . " x{$i->qty}")
+            ->map(fn ($i) => ($i->product?->nama ?? 'Produk').($i->size ? " ({$i->size})" : '')." x{$i->qty}")
             ->implode(', ');
 
-        $total = 'Rp ' . number_format((int) $order->grand_total, 0, ',', '.');
+        $total = 'Rp '.number_format((int) $order->grand_total, 0, ',', '.');
         $method = match ($order->payment_method) {
             'transfer' => 'Transfer Bank',
             'ewallet' => 'QRIS / E-Wallet',
@@ -264,7 +337,7 @@ class OrderResource extends Resource
             default => "Halo Kak {$order->recipient_name}, terima kasih telah berbelanja di Batik Daffa.\n\nPesanan Anda dengan kode *{$order->order_code}* sudah kami terima & konfirmasi:\n• Item: {$itemsText}\n• Total: {$total}\n• Metode: {$method}\n• Alamat: {$order->shipping_address}\n\nKami akan segera mengabarkan detail pengiriman dan resi kepada Anda. Terima kasih!",
         };
 
-        return 'https://wa.me/' . $phone . '?text=' . rawurlencode($text);
+        return 'https://wa.me/'.$phone.'?text='.rawurlencode($text);
     }
 
     public static function getRelations(): array

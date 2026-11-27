@@ -76,7 +76,8 @@ class HeroSlideResource extends Resource
                 ->placeholder('/katalog?cat=kain')
                 ->required()
                 ->maxLength(255)
-                ->helperText('Contoh: /katalog, /katalog?cat=kain, /katalog?cat=pakaian'),
+                ->rules(['regex:#^(/[^/\\\\].*|/$|https://[^\s<>"\']+$)#i'])
+                ->helperText('Gunakan path internal (contoh: /katalog, /katalog?cat=kain) atau URL https://.'),
 
             Forms\Components\Select::make('focal_point')
                 ->label('Posisi Fokus Foto')

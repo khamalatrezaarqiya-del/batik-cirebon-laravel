@@ -3,8 +3,8 @@
 use App\Models\Category;
 use App\Models\HeroSlide;
 use App\Models\Product;
-use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\ProductSeeder;
+use Database\Seeders\StoreVisualSeeder;
 use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
@@ -15,13 +15,12 @@ return new class extends Migration
             return;
         }
 
-        $needsSeed = Product::count() === 0
-            || Category::count() === 0
-            || HeroSlide::count() === 0
-            || User::where('is_admin', true)->doesntExist();
+        if (Product::count() === 0 || Category::count() === 0) {
+            (new ProductSeeder)->run();
+        }
 
-        if ($needsSeed) {
-            (new DatabaseSeeder())->run();
+        if (HeroSlide::count() === 0) {
+            (new StoreVisualSeeder)->run();
         }
     }
 

@@ -36,6 +36,12 @@ export default function Checkout({ products = [], paymentInfo = null }) {
     .filter(Boolean)
   const total = items.reduce((s, i) => s + i.lineTotal, 0)
 
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `chk-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+  )
+
   const form = useForm({
     recipient_name: user?.name || '',
     phone: '',
@@ -43,12 +49,14 @@ export default function Checkout({ products = [], paymentInfo = null }) {
     note: '',
     payment_method: 'transfer',
     items: [],
+    idempotency_key: '',
   })
 
   const submit = (e) => {
     e.preventDefault()
     form.transform((data) => ({
       ...data,
+      idempotency_key: idempotencyKey,
       items: items.map((i) => ({ product_id: i.id, size: i.size || null, qty: i.qty })),
     }))
     form.post('/checkout', {

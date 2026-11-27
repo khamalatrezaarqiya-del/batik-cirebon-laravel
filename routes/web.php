@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShopController;
+use App\Models\Order;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -16,19 +17,34 @@ Route::controller(ShopController::class)->group(function () {
     Route::get('/produk/{slug}', 'show')->name('product.detail');
     Route::get('/keranjang', 'cart')->name('cart');
     Route::get('/checkout', 'checkoutPage')->name('checkout');
-    Route::post('/checkout', 'processCheckout')->name('checkout.process');
-    Route::get('/pesanan', 'orders')->name('orders.index');
-    Route::get('/pesanan/{orderCode}', 'orderShow')->name('order.show');
-    Route::post('/pesanan/{orderCode}/selesai', 'completeOrder')->name('order.complete');
-    Route::post('/pesanan/{orderCode}/ulasan', 'storeReview')->name('order.review');
+    Route::post('/checkout', 'processCheckout')
+        ->middleware('throttle:checkout')
+        ->name('checkout.process');
+    Route::get('/pesanan', 'orders')
+        ->middleware('throttle:order-lookup')
+        ->name('orders.index');
+    Route::get('/pesanan/{orderCode}', 'orderShow')
+        ->middleware('throttle:order-lookup')
+        ->name('order.show');
+    Route::post('/pesanan/{orderCode}/verifikasi', 'verifyGuestOrder')
+        ->middleware('throttle:order-verify')
+        ->name('order.verify');
+    Route::post('/pesanan/{orderCode}/selesai', 'completeOrder')
+        ->middleware('throttle:order-mutation')
+        ->name('order.complete');
+    Route::post('/pesanan/{orderCode}/ulasan', 'storeReview')
+        ->middleware('throttle:order-mutation')
+        ->name('order.review');
     Route::get('/bantuan/{topic?}', 'help')->name('help');
-    Route::get('/api/cart-sync', 'cartSync')->name('api.cart.sync');
+    Route::get('/api/cart-sync', 'cartSync')
+        ->middleware('throttle:cart-sync')
+        ->name('api.cart.sync');
     Route::get('/storage/{path}', 'publicFile')->where('path', '.*')->name('storage.public');
 });
 
 Route::get('/dashboard', function () {
-    $orders = \App\Models\Order::with('items.product:id,nama,slug')
-        ->where('user_id', auth()->id())
+    $orders = Order::with('items.product:id,nama,slug')
+        ->where('user_id', auth('web')->id())
         ->latest()
         ->limit(5)
         ->get();
